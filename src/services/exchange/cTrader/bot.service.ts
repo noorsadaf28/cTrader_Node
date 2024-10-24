@@ -1,5 +1,5 @@
-import { BaseBotService } from "src/services/baseBot.service";
+// import { BaseBotService } from "src/services/baseBot.service";
 
-export class CtraderBotService extends BaseBotService{
+// export class CtraderBotService extends BaseBotService{
     
-}
+// }

@@ -1,5 +1,5 @@
-import { BaseConnectionService } from "src/services/baseConnection.service";
+// import { BaseConnectionService } from "src/services/baseConnection.service";
 
-export class CtraderConnectionService extends BaseConnectionService{
+// export class CtraderConnectionService extends BaseConnectionService{
     
-}
+// }

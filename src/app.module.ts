@@ -1,72 +1,46 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AccountModule } from './module/account.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { CtraderAccountService } from './services/exchange/cTrader/account.service';
-import { CtraderBotService } from './services/exchange/cTrader/bot.service';
-import { EvaluationProcessService } from './BotType/Evaluation/evaluationProcess.service';
-import { CtraderEvaluationService } from './services/exchange/cTrader/evaluation.service';
-import { CtraderOrderService } from './services/exchange/cTrader/order.service';
-import { CtraderConnectionService } from './services/exchange/cTrader/connection.service';
+import { Account } from './entity/account.entity';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { Challenge } from './entity/challenge.entity';
+import { DailyEquity } from './entity/equity.entity';
+import { Order } from './entity/order.entity';
+import { Notification } from './entity/notification.entity';
+import { User } from './entity/auth.entity';
+// import { AuthModule } from './auth/auth.module';
+import { OrderModule } from './module/order.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
-  imports: [ 
-    //db
-    TypeOrmModule.forRoot({
-      type: 'postgres',           // Database type
-      host: 'localhost',          // PostgreSQL host
-      port: 5432,                 // PostgreSQL port
-      username: 'postgres',  // Your PostgreSQL username
-      password: '987654321',  // Your PostgreSQL password
-      database: 'CtraderDatabase',  // Your PostgreSQL database name
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],  // Entities path
-      synchronize: true,          // Set to `true` in development mode
+  imports: [
+    // Load environment variables globally
+    ConfigModule.forRoot({
+      isGlobal: true,
     }),
-    // config
-    ConfigModule.forRoot({ envFilePath: '.env', isGlobal: true }),],
-  controllers: [AppController],
-  providers:
-  [
-    AppService,
-
-    {
-      provide: 'IAccountInterface', 
-      useClass:
-      process.env.exchange === 'CTRADER' ? CtraderAccountService: CtraderAccountService
-        
-    },
-
-    {
-    provide:'IBotInterface',
-    useClass:
-    process.env.exchange === 'CTRADER'? CtraderBotService: CtraderBotService
-    
-    },
-    {
-      provide:'IBotProcessInterface',
-      useClass:
-      process.env.botType === 'Evaluation'? EvaluationProcessService: EvaluationProcessService
-      
-    },
-    {
-      provide:'IEvaluationInterface',
-      useClass:
-      process.env.exchange === 'CTRADER'? CtraderEvaluationService: CtraderEvaluationService
-      
-    },
-    {
-      provide:'IOrderInterface',
-      useClass:
-      process.env.exchange === 'CTRADER'? CtraderOrderService: CtraderOrderService
-      
-    },
-    {
-      provide:'IConnectionInterface',
-      useClass:
-      process.env.exchange === 'CTRADER'? CtraderConnectionService: CtraderConnectionService
-      
-    }
-  ], 
+    // Configure TypeORM asynchronously using environment variables
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get<string>('DATABASE_HOST'),
+        port: parseInt(configService.get<string>('DATABASE_PORT'), 10),
+        username: configService.get<string>('DATABASE_USER'),
+        password: configService.get<string>('DATABASE_PASSWORD'),
+        database: configService.get<string>('DATABASE_NAME'),
+        entities: [Account,Challenge,DailyEquity,Order,Notification,User],
+        // entities: [Account,Order], // Replace with your entities
+        synchronize: true,  // Make sure to disable in production
+        logging: true,
+      }),
+      inject: [ConfigService],
+    }),    
+    // Import the AccountModule 
+    ScheduleModule.forRoot(),
+    OrderModule,AccountModule  ],
+  controllers: [AppController], // Register AppController
+  providers: [AppService], // Register AppService
 })
 export class AppModule {}

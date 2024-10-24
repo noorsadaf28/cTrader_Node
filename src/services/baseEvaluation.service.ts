@@ -1,5 +1,5 @@
-import { IEvaluationInterface } from "./Interfaces/IEvaluation.interface";
+// import { IEvaluationInterface } from "./Interfaces/IEvaluation.interface";
 
-export abstract class BaseEvaluationService implements IEvaluationInterface{
+// export abstract class BaseEvaluationService implements IEvaluationInterface{
 
-}
+// }
