@@ -9,6 +9,7 @@ import { EvaluationProcessService } from './BotType/Evaluation/evaluationProcess
 import { CtraderEvaluationService } from './services/exchange/cTrader/evaluation.service';
 import { CtraderOrderService } from './services/exchange/cTrader/order.service';
 import { CtraderConnectionService } from './services/exchange/cTrader/connection.service';
+import { EvaluationController } from './controllers/evaluation.controller';
 
 @Module({
   imports: [ 
@@ -25,7 +26,7 @@ import { CtraderConnectionService } from './services/exchange/cTrader/connection
     }),
     // config
     ConfigModule.forRoot({ envFilePath: '.env', isGlobal: true }),],
-  controllers: [AppController],
+  controllers: [AppController, EvaluationController],
   providers:
   [
     AppService,
