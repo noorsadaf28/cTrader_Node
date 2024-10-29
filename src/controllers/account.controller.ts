@@ -11,13 +11,15 @@ export class AccountController {
     @Body() createTraderDto: CreateTraderDto,
     @Body('email') userEmail: string,
     @Body('preferredLanguage') preferredLanguage: string,
+    @Body('depositCurrency') depositCurrency:string,
+    @Body('balance') balance:number
   ) {
     try {
       if (!userEmail || !preferredLanguage) {
         throw new HttpException('Email and Preferred Language are required', HttpStatus.BAD_REQUEST);
       }
-
-      const response = await this.accountService.createAccountWithCTID(createTraderDto, userEmail, preferredLanguage);
+console.log("----------balance", balance)
+      const response = await this.accountService.createAccountWithCTID(createTraderDto, userEmail, preferredLanguage, depositCurrency, balance);
       return response;
       
     } catch (error) {

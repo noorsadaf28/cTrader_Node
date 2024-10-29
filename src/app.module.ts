@@ -24,7 +24,7 @@ import { SpotwareService } from './services/exchange/cTrader/spotware.account.se
     }),
     // Removed TypeORM configuration as it's no longer needed
     ScheduleModule.forRoot(),
-    AccountModule,
+    AccountModule
   ],
   controllers: [AppController, EvaluationController],
   providers:

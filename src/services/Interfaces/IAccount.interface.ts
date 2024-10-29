@@ -5,7 +5,9 @@ export interface IAccountService {
   createAccountWithCTID(
     createTraderDto: CreateTraderDto,
     userEmail: string,
-    preferredLanguage: string
+    preferredLanguage: string,
+    depositCurrency:string,
+    balance:number
   ): Promise<{
     ctid: number;
     traderLogin: string;

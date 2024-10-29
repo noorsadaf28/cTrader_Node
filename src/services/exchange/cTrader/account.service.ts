@@ -4,6 +4,7 @@ import { SpotwareService } from './spotware.account.service';
 import { CreateTraderDto } from 'src/dto/create-trader.dto';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
+import { response } from 'express';
 
 @Injectable()
 export class CtraderAccountService implements IAccountService {
@@ -14,16 +15,19 @@ export class CtraderAccountService implements IAccountService {
     private readonly spotwareService: SpotwareService,
   ) {
     this.xanoApiUrl = this.configService.get<string>('XANO_API_URL_1');
+    console.log("🚀 ~ CtraderAccountService ~ xḁnoApiUrl:", this.xanoApiUrl)
     console.log('AccountService initialized with Xano');
   }
 
   async createAccountWithCTID(
     createTraderDto: CreateTraderDto,
     userEmail: string,
-    preferredLanguage: string
+    preferredLanguage: string,
+    depositCurrency:string,
+    balance:number
   ): Promise<{ ctid: number; traderLogin: string; ctidTraderAccountId: number; message?: string }> {
     try {
-      console.log('Creating cTID with email:', userEmail);
+      console.log('Creating cTID with email:', userEmail, balance);
       const ctidResponse = await this.spotwareService.createCTID(userEmail, preferredLanguage);
       const userId = parseInt(ctidResponse.userId);
 
@@ -32,6 +36,7 @@ export class CtraderAccountService implements IAccountService {
       }
 
       const traderResponse = await this.spotwareService.createTrader(createTraderDto);
+      console.log(traderResponse)
       const traderLogin = traderResponse.login;
 
       if (!traderLogin) {
@@ -44,17 +49,35 @@ export class CtraderAccountService implements IAccountService {
         createTraderDto.brokerName,
         createTraderDto.hashedPassword
       );
+      console.log("hey",linkResponse)
+     const dataJson= {
+        "uuid": "jsjnsj",
+        "accounts": [{
+            id:userId,
+            status:"Active",
+            currency:depositCurrency,
+            initialBalance : balance,
+            finalBalance: balance
+        }]
+      }
+    //   const response = await axios.post(this.xanoApiUrl, {
+      
+    //     ctid: userId,
+    //     traderLogin,
+    //     ctidTraderAccountId: linkResponse.ctidTraderAccountId,
+    //     email: userEmail,
+    //     balance: createTraderDto.balance,
+    //     accountType: createTraderDto.accountType,
+    //     depositCurrency: createTraderDto.depositCurrency,
+    //   });
+      const response = await axios.post(this.xanoApiUrl,dataJson);
+console.log(response);
+// const jsonAccount = {
+//     id:userId
 
-      const response = await axios.post(this.xanoApiUrl, {
-        ctid: userId,
-        traderLogin,
-        ctidTraderAccountId: linkResponse.ctidTraderAccountId,
-        email: userEmail,
-        balance: crateTraderDto.balance,
-        accountType: createTraderDto.accountType,
-        depositCurrency: createTraderDto.depositCurrency,
-      });
-
+// }
+// response.data.accounts.push(jsonAccount)
+// console.log("-------------",response.data.accounts);
       console.log('Account created in Xano:', response.data);
       return {
         ctid: userId,
