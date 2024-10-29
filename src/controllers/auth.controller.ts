@@ -11,6 +11,7 @@ export class AuthController {
     {
         try{
             const response = await this.IAuthInterface.getToken(body);
+            console.log("🚀 ~ AuthController ~ response:", response)
             return response;
         }
         catch(error){

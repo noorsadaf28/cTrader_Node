@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
+import { AccountModule } from './module/account.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { ConfigModule } from '@nestjs/config';
+import { OrderModule } from './module/order.module';
+// Removed TypeOrmModule and Order entity
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CtraderAccountService } from './services/exchange/cTrader/account.service';
 import { CtraderBotService } from './services/exchange/cTrader/bot.service';
@@ -16,10 +20,17 @@ import { activeBotQueue } from 'config/constant';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import { CtraderAuthService } from './services/exchange/cTrader/auth.service';
 import { AuthController } from './controllers/auth.controller';
+import { SpotwareService } from './services/exchange/cTrader/spotware.account.service';
 
 @Module({
   imports: [ 
-    //db
+    // Load environment variables globally
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    // Removed TypeORM configuration as it's no longer needed
+    ScheduleModule.forRoot(),
+    AccountModule,
      // BULLMQ
      BullModule.forRoot({
       redis: {
@@ -85,7 +96,8 @@ import { AuthController } from './controllers/auth.controller';
       useClass:
       process.env.exchange === 'CTRADER'? CtraderAuthService: CtraderAuthService
       
-    }
-  ], 
+    },
+    SpotwareService
+  ],
 })
 export class AppModule {}

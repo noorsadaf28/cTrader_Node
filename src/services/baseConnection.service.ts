@@ -1,8 +1,10 @@
+// import { IConnectionInterface } from "./Interfaces/IConnection.interface";
+// import { Injectable, OnModuleInit } from '@nestjs/common';
+// import * as net from 'net';
+// import * as protobuf from 'protobufjs';
+// import * as tls from 'tls';
+
 import { IConnectionInterface } from "./Interfaces/IConnection.interface";
-import { Injectable, OnModuleInit } from '@nestjs/common';
-import * as net from 'net';
-import * as protobuf from 'protobufjs';
-import * as tls from 'tls';
 
 export abstract class BaseConnectionService implements IConnectionInterface{
 //     private client: tls.TLSSocket;

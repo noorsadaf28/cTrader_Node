@@ -1,3 +1,8 @@
+// import { IEvaluationInterface } from "./Interfaces/IEvaluation.interface";
+
+// export abstract class BaseEvaluationService implements IEvaluationInterface{
+
+// }
 import { IEvaluationInterface } from "./Interfaces/IEvaluation.interface";
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as net from 'net';

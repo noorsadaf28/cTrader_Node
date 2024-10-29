@@ -1,5 +1,5 @@
-import { IOrderInterface } from "./Interfaces/IOrder.interface";
+// import { IOrderInterface } from "./Interfaces/IOrder.interface";
 
-export abstract class BaseOrderService implements IOrderInterface{
+// export abstract class BaseOrderService implements IOrderInterface{
 
-}
+// }
