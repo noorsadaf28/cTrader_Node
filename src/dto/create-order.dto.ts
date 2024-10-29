@@ -1,47 +1,60 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class CreateOrderDto {
-  @IsNumber()
-  @IsNotEmpty()
-  login: number;
-
   @IsString()
   @IsNotEmpty()
-  positionId: string;
-
-  @IsString()
-  entryPrice: string;
-
-  @IsString()
-  direction: string;
+  key: string;
 
   @IsNumber()
-  volume: number;
+  @IsNotEmpty()
+  ticket_id: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  account: number;
 
   @IsString()
+  @IsNotEmpty()
+  type: string;
+
+  @IsString()
+  @IsNotEmpty()
   symbol: string;
 
   @IsNumber()
-  commission: number;
+  @IsNotEmpty()
+  volume: number;
 
   @IsNumber()
-  swap: number;
+  @IsNotEmpty()
+  entry_price: number;
 
   @IsString()
-  bookType: string;
+  @IsNotEmpty()
+  entry_date: string;
+
+  @IsString()
+  @IsNotEmpty()
+  broker: string;
+
+  @IsString()
+  @IsOptional()
+  open_reason: string;
+
+  @IsString()
+  @IsOptional()
+  close_reason?: string;
 
   @IsNumber()
-  usedMargin: number;
+  @IsOptional()
+  profit?: number;
 
-  @IsString()
-  openTimestamp: string;
-
-  @IsString()
-  closeTimestamp?: string;
-
-  @IsString()
-  closePrice?: string;
-
+  // Add these properties to match the type
   @IsNumber()
-  pnl?: number;
+  @IsOptional()
+  close_price?: number;
+
+  @IsString()
+  @IsOptional()
+  close_date?: string;
 }

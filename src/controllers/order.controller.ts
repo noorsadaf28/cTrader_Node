@@ -1,21 +1,19 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Post, Get } from '@nestjs/common';
+import { OrderPollingService } from 'src/services/exchange/cTrader/order.polling.service';
 import { OrderService } from 'src/services/exchange/cTrader/order.service';
+import { IOrder } from 'src/services/Interfaces/IOrder.interface';
 
-@Controller('positions')
+@Controller('order')
 export class OrderController {
-  constructor(private readonly orderService: OrderService) {}
+  constructor(
+    private readonly orderPollingService: OrderPollingService,
+    private readonly orderService: OrderService,
+  ) {}
 
-  @Get('open')
-  async getOpenPositions(@Query('login') login: number) {
-    return this.orderService.fetchOpenPositions(login);
+  @Post('fetch-open-positions')
+  async fetchOpenPositions(): Promise<void> {
+    await this.orderPollingService.pollPositions();
   }
 
-  @Get('closed')
-  async getClosedPositions(
-    @Query('from') from: string,
-    @Query('to') to: string,
-    @Query('login') login: number,
-  ) {
-    return this.orderService.fetchClosedPositions(from, to, login);
-  }
+   
 }

@@ -83,7 +83,7 @@ export class CreateTraderDto {
   @IsNotEmpty()
   totalMarginCalculationType: string;
 
-  // Optional fields
+  // Optional fields for Xano
   description?: string;
   isLimitedRisk?: boolean;
   lastName?: string;

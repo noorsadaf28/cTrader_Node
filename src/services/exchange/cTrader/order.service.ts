@@ -1,82 +1,66 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
-import { SpotwareService } from './spotware.order.service';
-import { IOrderService } from 'src/services/Interfaces/IOrder.interface';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Order } from 'src/entity/order.entity';
+import axios from 'axios';
+import { ConfigService } from '@nestjs/config';
+import { CreateOrderDto } from 'src/dto/create-order.dto';
+import { IOrder } from 'src/services/Interfaces/IOrder.interface';
 
 @Injectable()
-export class OrderService implements IOrderService {
-  constructor(
-    private readonly spotwareService: SpotwareService,
-    @InjectRepository(Order)
-    private readonly orderRepository: Repository<Order>,
-  ) {}
+export class OrderService {
+  private readonly xanoApiUrl: string;
 
-  async fetchOpenPositions(login?: number): Promise<any[]> {
-    const openPositions = await this.spotwareService.fetchOpenPositions(login);
-    console.log('Fetched open positions:', openPositions);
-    return openPositions;
+  constructor(private readonly configService: ConfigService) {
+    this.xanoApiUrl = `${this.configService.get<string>('XANO_API_URL')}`;
   }
 
-  async fetchClosedPositions(from: string, to: string, login?: number): Promise<any[]> {
-    const closedPositions = await this.spotwareService.fetchClosedPositions(from, to, login);
-    console.log('Fetched closed positions:', closedPositions);
-    return closedPositions;
-  }
-
-  // Polling function to continuously update open positions
-  async updatePositionsData(): Promise<void> {
-    setInterval(async () => {
-      const openPositions = await this.fetchOpenPositions();
-      console.log('Updating positions in DB...');
-      for (const position of openPositions) {
-        await this.createOrUpdateOrder(position);  // Updated to call the new method
+  async createOrder(createOrderDto: CreateOrderDto): Promise<IOrder> {
+    try {
+      // Check if the order already exists by `ticket_id`
+      const existingOrder = await this.findOrderByTicketId(createOrderDto.ticket_id);
+      console.log("hey",existingOrder);
+      if (existingOrder) {
+        console.log(`Duplicate order detected for ticket_id: ${createOrderDto.ticket_id}. Skipping insertion.`);
+        return existingOrder; // Skip creation and return the existing order
       }
-    }, 30000); // Poll every 30 seconds
-  }
 
-  // Method to create or update an order
-  async createOrUpdateOrder(position: any): Promise<void> {
-    const existingOrder = await this.orderRepository.findOne({
-      where: { positionId: position.positionId },
-    });
+      // Proceed to create a new order if it does not exist
+      const response = await axios.post(this.xanoApiUrl, createOrderDto);
+      console.log(`New open order created in Xano: ${JSON.stringify(response.data)}`);
+      return response.data;
 
-    if (existingOrder) {
-      // Update existing position
-      existingOrder.closePrice = position.closePrice || existingOrder.closePrice;
-      existingOrder.closeTimestamp = position.closeTimestamp || existingOrder.closeTimestamp;
-      existingOrder.volume = position.volume;
-      existingOrder.entryPrice = position.entryPrice;
-      await this.orderRepository.save(existingOrder);
-    } else {
-      // Save new position
-      const newOrder = this.orderRepository.create(position);
-      await this.orderRepository.save(newOrder);
+    } catch (error) {
+      throw new HttpException(
+        `Failed to create order in Xano: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
-  // Method to delete a closed order
-  async deleteOrder(positionId: number): Promise<void> {
-    const existingOrder = await this.orderRepository.findOne({ where: { positionId } });
-
-    if (!existingOrder) {
-      throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
+  async updateOrderWithCloseData(closeOrderData: CreateOrderDto): Promise<IOrder> {
+    try {
+      const response = await axios.put(`${this.xanoApiUrl}/${closeOrderData.ticket_id}`, closeOrderData);
+      return response.data;
+    } catch (error) {
+      throw new HttpException(
+        `Failed to update order in Xano: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
-
-    await this.orderRepository.remove(existingOrder);
-    console.log(`Order with positionId ${positionId} deleted`);
   }
 
-  // New method to delete closed positions based on polling
-  async pollAndDeleteClosedPositions(): Promise<void> {
-    const from = new Date().toISOString().split('T')[0] + 'T00:00:00.000';
-    const to = new Date().toISOString().split('T')[0] + 'T23:59:59.999';
-    
-    const closedPositions = await this.fetchClosedPositions(from, to);
-
-    for (const position of closedPositions) {
-      await this.deleteOrder(position.positionId);
+  async findOrderByTicketId(ticket_id: number): Promise<IOrder | null> {
+    try {
+      const response = await axios.get(`${this.xanoApiUrl}/${ticket_id}`);
+      console.log(`Find order response for ticket_id ${ticket_id}:`,response.data.items[0].ticket_id);
+      return response.data.items[0].ticket_id;
+    } catch (error) {
+      if (error.response && error.response.status === 404) {
+        console.log(`No order found for ticket_id ${ticket_id}`);
+        return null;
+      }
+      throw new HttpException(
+        `Error fetching order: ${error.message}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

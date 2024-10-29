@@ -1,53 +1,67 @@
-import { Account } from "./account.entity";
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('orders')
 export class Order {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
-  login: number;
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  created_at: Date;
 
   @Column({ unique: true })
-  positionId: number;
+  key: string;
 
   @Column()
-  entryPrice: string;
+  ticket_id: number;
 
   @Column()
-  direction: string;
+  account: number;
 
-  @Column('decimal', { precision: 10, scale: 2 })
-  volume: number;
+  @Column()
+  type: string;
 
   @Column()
   symbol: string;
 
   @Column('decimal', { precision: 10, scale: 2 })
-  commission: number;
+  volume: number;
 
   @Column('decimal', { precision: 10, scale: 2 })
-  swap: number;
+  entry_price: number;
 
   @Column()
-  bookType: string;
+  entry_date: string;
 
-  @Column('decimal', { precision: 10, scale: 2 })
-  usedMargin: number;
+  @Column({ nullable: true })
+  take_profit: string;
+
+  @Column({ nullable: true })
+  stop_loss: string;
+
+  @Column({ nullable: true })
+  close_price: string;
+
+  @Column({ nullable: true })
+  close_date: string;
+
+  @Column('decimal', { precision: 10, scale: 2, nullable: true })
+  profit: number;
 
   @Column()
-  openTimestamp: string;
+  broker: string;
+
+  @Column()
+  open_reason: string;
 
   @Column({ nullable: true })
-  closeTimestamp: string;
+  close_reason: string;
 
-  @Column({ nullable: true })
-  closePrice: string;
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+  updated_at: Date;
 
-  @Column({ nullable: true })
-  pnl: number;
+  @Column()
+  magic_number: string;
 
-  @ManyToOne(() => Account, (account) => account.orders)
-  account: Account;
+  @Column({ nullable: true, type: 'int' })
+  refund_percentage: number;
 }

@@ -1,7 +1,6 @@
 import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
-import * as csvParser from 'csv-parser';
 
 @Injectable()
 export class SpotwareService {
@@ -13,49 +12,31 @@ export class SpotwareService {
     this.apiToken = this.configService.get<string>('SPOTWARE_API_TOKEN');
   }
 
-  async fetchOpenPositions(login?: number): Promise<any[]> {
-    const url = `${this.spotwareApiUrl}/v2/webserv/openPositions`;
-    const params: any = { token: this.apiToken };
-    if (login) {
-      params.login = login;
+  async getOpenPositions() {
+    try {
+      const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/openPositions`, {
+        headers: { Authorization: `Bearer ${this.apiToken}` },
+        params: { token: this.apiToken },
+      });
+      console.log('Open positions fetched from Spotware:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching open positions from Spotware:', error.message);
+      throw new HttpException('Failed to fetch open positions from Spotware', HttpStatus.INTERNAL_SERVER_ERROR);
     }
-
-    const response = await axios.get(url, { params });
-    console.log(response);
-    const csvData = response.data;
-    console.log(csvData);
-
-    // Parse CSV response
-    return await this.parseCSVToJson(csvData);
   }
 
-  async fetchClosedPositions(from: string, to: string, login?: number): Promise<any[]> {
-    const url = `${this.spotwareApiUrl}/v2/webserv/closedPositions`;
-    const params: any = {
-      token: this.apiToken,
-      from,
-      to,
-    };
-    if (login) {
-      params.login = login;
+  async getClosedPositions(from: string, to: string) {
+    try {
+      const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/closedPositions`, {
+        headers: { Authorization: `Bearer ${this.apiToken}` },
+        params: { from, to, token: this.apiToken },
+      });
+      console.log('Closed positions fetched from Spotware:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching closed positions from Spotware:', error.message);
+      throw new HttpException('Failed to fetch closed positions from Spotware', HttpStatus.INTERNAL_SERVER_ERROR);
     }
-
-    const response = await axios.get(url, { params });
-    const csvData = response.data;
-
-    // Parse CSV response
-    return await this.parseCSVToJson(csvData);
-  }
-
-  // Utility function to parse CSV to JSON
-  private parseCSVToJson(csvData: string): Promise<any[]> {
-    return new Promise((resolve, reject) => {
-      const results = [];
-      csvParser()
-        .on('data', (data) => results.push(data))
-        .on('end', () => resolve(results))
-        .on('error', (err) => reject(err))
-        .end(csvData);
-    });
   }
 }
