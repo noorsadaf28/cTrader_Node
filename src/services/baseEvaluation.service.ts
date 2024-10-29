@@ -2,6 +2,7 @@ import { IEvaluationInterface } from "./Interfaces/IEvaluation.interface";
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as net from 'net';
 import * as protobuf from 'protobufjs';
+import { RulesRequest } from "src/models/rulesModel";
 import * as tls from 'tls';
 
 export abstract class BaseEvaluationService implements IEvaluationInterface, OnModuleInit {
@@ -127,7 +128,6 @@ private client: tls.TLSSocket;
       return { message: "Subscription request failed", error: error.message };
     }
   }
-  
   async unsubscribeFromSpotQuotes(subscriptionId: string) {
     try {
       const UnsubscribeSpotQuotesReq = this.root.lookupType('ProtoUnsubscribeSpotQuotesReq');
@@ -147,51 +147,12 @@ private client: tls.TLSSocket;
       console.error('Error unsubscribing from spot quotes:', error);
     }
   }
-  
-
   // Helper to add message length prefix for server communication
   private prefixMessageWithLength(buffer: Buffer): Buffer {
     const lengthBuffer = Buffer.alloc(4);
     lengthBuffer.writeUInt32BE(buffer.length, 0);
     return Buffer.concat([lengthBuffer, buffer]);
   }
-
-  // Handle incoming data, process ProtoSpotEvent messages
-  // private handleEventData(data: Buffer) {
-  //   console.log("Data received in handleEventData");
-  
-  //   // Append new data to the existing buffer
-  //   this.messageBuffer = Buffer.concat([this.messageBuffer, data]);
-  
-  //   while (true) {
-  //     if (this.messageBuffer.length < 4) {
-  //       console.log("Insufficient data for length prefix");
-  //       return;
-  //     }
-  
-  //     const length = this.messageBuffer.readUInt32BE(0);
-  //     console.log("Message length prefix:", length);
-  
-  //     if (this.messageBuffer.length < 4 + length) {
-  //       console.log("Waiting for full message data...");
-  //       return;
-  //     }
-  
-  //     const eventDataBuffer = this.messageBuffer.slice(4, 4 + length);
-  //     const ProtoSpotEvent = this.root.lookupType('ProtoSpotEvent');
-      
-  //     try {
-  //       const decodedEvent = ProtoSpotEvent.decode(eventDataBuffer);
-  //       console.log("Decoded ProtoSpotEvent:", decodedEvent);
-  
-  //       this.processSpotData(decodedEvent);
-  //     } catch (error) {
-  //       console.error("Error decoding ProtoSpotEvent:", error);
-  //     }
-  
-  //     this.messageBuffer = this.messageBuffer.slice(4 + length);
-  //   }
-  // }
   // Handle incoming data, process ProtoSpotEvent messages
 private handleEventData(data: Buffer) {
   console.log("Data received in handleEventData");
@@ -236,14 +197,24 @@ private handleEventData(data: Buffer) {
     }
   }
 }
-
-  
-
   // Process received spot data (e.g., store/display prices)
   private processSpotData(data: any) {
     // Assuming the data contains symbol and price
     const { symbol, price, timestamp } = data;
     console.log(`Symbol: ${symbol} | Price: ${price} | Timestamp: ${timestamp}`);
     // Here, you can store the data in a database or cache as needed
+  }
+  async rulesEvaluation(req){
+    try{
+
+      // if(req.Phase === process.env.Phase_0){
+      //   let ruledata:RulesRequest;
+      //   ruledata.account = req.account;
+      //   ruledata.balance = 
+      // }
+    }
+    catch{
+
+    }
   }
 }

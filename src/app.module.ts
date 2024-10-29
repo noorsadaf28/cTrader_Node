@@ -10,23 +10,35 @@ import { CtraderEvaluationService } from './services/exchange/cTrader/evaluation
 import { CtraderOrderService } from './services/exchange/cTrader/order.service';
 import { CtraderConnectionService } from './services/exchange/cTrader/connection.service';
 import { EvaluationController } from './controllers/evaluation.controller';
+import { BotController } from './controllers/bot.controller';
+import { BullModule } from '@nestjs/bull';
+import { activeBotQueue } from 'config/constant';
+import { ExpressAdapter } from '@nestjs/platform-express';
+import { CtraderAuthService } from './services/exchange/cTrader/auth.service';
+import { AuthController } from './controllers/auth.controller';
 
 @Module({
   imports: [ 
     //db
-    TypeOrmModule.forRoot({
-      type: 'postgres',           // Database type
-      host: 'localhost',          // PostgreSQL host
-      port: 5432,                 // PostgreSQL port
-      username: 'postgres',  // Your PostgreSQL username
-      password: '987654321',  // Your PostgreSQL password
-      database: 'CtraderDatabase',  // Your PostgreSQL database name
-      entities: [__dirname + '/**/*.entity{.ts,.js}'],  // Entities path
-      synchronize: true,          // Set to `true` in development mode
+     // BULLMQ
+     BullModule.forRoot({
+      redis: {
+        host: 'localhost',
+        port: 6379,
+      },
+      
     }),
+
+      BullModule.registerQueue({
+        name: activeBotQueue,
+        defaultJobOptions: {
+          attempts: 2
+        },},
+    ),
+   
     // config
     ConfigModule.forRoot({ envFilePath: '.env', isGlobal: true }),],
-  controllers: [AppController, EvaluationController],
+  controllers: [AppController, EvaluationController, BotController, AuthController],
   providers:
   [
     AppService,
@@ -66,6 +78,12 @@ import { EvaluationController } from './controllers/evaluation.controller';
       provide:'IConnectionInterface',
       useClass:
       process.env.exchange === 'CTRADER'? CtraderConnectionService: CtraderConnectionService
+      
+    },
+    {
+      provide:'IAuthInterface',
+      useClass:
+      process.env.exchange === 'CTRADER'? CtraderAuthService: CtraderAuthService
       
     }
   ], 
