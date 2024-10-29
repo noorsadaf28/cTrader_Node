@@ -2,17 +2,17 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
 import { CreateOrderDto } from 'src/dto/create-order.dto';
-import { IOrder } from 'src/services/Interfaces/IOrder.interface';
+import {IOrderInterface } from 'src/services/Interfaces/IOrder.interface';
 
 @Injectable()
-export class OrderService {
+export class CtraderOrderService {
   private readonly xanoApiUrl: string;
 
   constructor(private readonly configService: ConfigService) {
     this.xanoApiUrl = `${this.configService.get<string>('XANO_API_URL')}`;
   }
 
-  async createOrder(createOrderDto: CreateOrderDto): Promise<IOrder> {
+  async createOrder(createOrderDto: CreateOrderDto): Promise<IOrderInterface> {
     try {
       // Check if the order already exists by `ticket_id`
       const existingOrder = await this.findOrderByTicketId(createOrderDto.ticket_id);
@@ -35,7 +35,7 @@ export class OrderService {
     }
   }
 
-  async updateOrderWithCloseData(closeOrderData: CreateOrderDto): Promise<IOrder> {
+  async updateOrderWithCloseData(closeOrderData: CreateOrderDto): Promise<IOrderInterface> {
     try {
       const response = await axios.put(`${this.xanoApiUrl}/${closeOrderData.ticket_id}`, closeOrderData);
       return response.data;
@@ -47,7 +47,7 @@ export class OrderService {
     }
   }
 
-  async findOrderByTicketId(ticket_id: number): Promise<IOrder | null> {
+  async findOrderByTicketId(ticket_id: number): Promise<IOrderInterface | null> {
     try {
       const response = await axios.get(`${this.xanoApiUrl}/${ticket_id}`);
       console.log(`Find order response for ticket_id ${ticket_id}:`,response.data.items[0].ticket_id);

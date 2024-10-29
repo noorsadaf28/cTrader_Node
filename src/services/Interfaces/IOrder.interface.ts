@@ -1,4 +1,4 @@
-export interface IOrder {
+export interface IOrderInterface {
   key: string;
   ticket_id: number;
   account: number;

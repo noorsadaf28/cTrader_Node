@@ -1,10 +1,10 @@
 import { Controller, Post, Body, HttpException, HttpStatus } from '@nestjs/common';
-import { AccountService } from 'src/services/exchange/cTrader/account.service';
+import { CtraderAccountService } from 'src/services/exchange/cTrader/account.service';
 import { CreateTraderDto } from 'src/dto/create-trader.dto';
 
 @Controller('account')
 export class AccountController {
-  constructor(private readonly accountService: AccountService) {}
+  constructor(private readonly accountService: CtraderAccountService) {}
 
   @Post('create-with-ctid')
   async createAccountWithCTID(

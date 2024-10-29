@@ -6,7 +6,7 @@ import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class AccountService implements IAccountService {
+export class CtraderAccountService implements IAccountService {
   private readonly xanoApiUrl: string;
 
   constructor(
@@ -50,7 +50,7 @@ export class AccountService implements IAccountService {
         traderLogin,
         ctidTraderAccountId: linkResponse.ctidTraderAccountId,
         email: userEmail,
-        balance: createTraderDto.balance,
+        balance: crateTraderDto.balance,
         accountType: createTraderDto.accountType,
         depositCurrency: createTraderDto.depositCurrency,
       });

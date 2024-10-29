@@ -1,5 +1,5 @@
 export interface IConnectionInterface{
-    onModuleInit();
-    connectToCTrader();
-    handleMessage(data);
+//     onModuleInit();
+//     connectToCTrader();
+//     //handleMessage(data);
 }

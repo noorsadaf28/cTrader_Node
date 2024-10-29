@@ -1,5 +1,5 @@
-// import { IBotInterface } from "./Interfaces/IBot.interface";
+import { IBotInterface } from "./Interfaces/IBot.interface";
 
-// export abstract class BaseBotService implements IBotInterface{
+export abstract class BaseBotService implements IBotInterface{
 
-// }
+}
