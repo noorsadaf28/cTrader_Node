@@ -7,7 +7,6 @@ import { IOrderInterface } from 'src/services/Interfaces/IOrder.interface';
 export class OrderController {
   constructor(
     private readonly orderPollingService: OrderPollingService,
-    private readonly orderService: CtraderOrderService,
   ) {}
 
   @Post('fetch-open-positions')

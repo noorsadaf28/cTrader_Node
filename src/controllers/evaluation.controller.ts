@@ -28,7 +28,13 @@ export class EvaluationController {
   @HttpCode(HttpStatus.OK)
   @Post('rulesEvaluation')
   async rulesEvaluation(@Body() body) {
-    return this.IEvaluationInterface.rulesEvaluation(body);
+    try{
+      return this.IEvaluationInterface.rulesEvaluation(body);
+    }
+    catch(error){
+      console.log("🚀 ~ EvaluationController ~ rulesEvaluation ~ error:", error)
+      
+    }
   }
     
 }

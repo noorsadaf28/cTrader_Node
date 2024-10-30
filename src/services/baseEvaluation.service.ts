@@ -4,18 +4,22 @@
 
 // }
 import { IEvaluationInterface } from "./Interfaces/IEvaluation.interface";
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import * as net from 'net';
 import * as protobuf from 'protobufjs';
 import { RulesRequest } from "src/models/rulesModel";
 import * as tls from 'tls';
+import { BaseAccountService } from "./baseAccount.service";
+import { AccountConfig, PhaseSettings } from "src/data/rulesData";
+import axios from "axios";
+import { IAccountInterface } from 'src/services/Interfaces/IAccount.interface';
 
 export abstract class BaseEvaluationService implements IEvaluationInterface, OnModuleInit {
 private client: tls.TLSSocket;
   private root: protobuf.Root;
   private messageBuffer: Buffer = Buffer.alloc(0);
 
-  constructor() {}
+  constructor(@Inject('IAccountInterface') private readonly IAccountInterface:IAccountInterface) {}
 
   async onModuleInit() {
     await this.initializeConnection();
@@ -194,7 +198,6 @@ private handleEventData(data: Buffer) {
       // Decode the complete ProtoSpotEvent message
       const decodedEvent = ProtoSpotEvent.decode(eventDataBuffer);
       console.log("Decoded ProtoSpotEvent:", decodedEvent);
-
       // Process the decoded spot data
       this.processSpotData(decodedEvent);
     } catch (error) {
@@ -211,14 +214,33 @@ private handleEventData(data: Buffer) {
   }
   async rulesEvaluation(req){
     try{
-
-      // if(req.Phase === process.env.Phase_0){
-      //   let ruledata:RulesRequest;
-      //   ruledata.account = req.account;
-      //   ruledata.balance = 
-      // }
+      const accountdata = await this.IAccountInterface.AccountDetails(req);
+        let ruledata = new RulesRequest;
+        const url = process.env.makeEvalURL;
+        const phaseSettings = PhaseSettings[req.phase];
+        ruledata.account = accountdata.login;
+        ruledata.balance = accountdata.balance;
+        ruledata.request_type = req.request_type;
+        ruledata.metatrader = AccountConfig.METATRADER_PLATFORM,
+        ruledata.status = req.status;
+        ruledata.initial_balance = accountdata.balance;
+        ruledata.max_daily_loss = phaseSettings.max_daily_loss;
+        ruledata.max_loss = phaseSettings.max_loss;
+        ruledata.profit_target= phaseSettings.profit_target,
+        ruledata.minimum_trading_days = phaseSettings.minimum_trading_days,
+        ruledata.max_trading_days = phaseSettings.max_trading_days,
+        ruledata.max_daily_currency = phaseSettings.max_daily_currency,
+        ruledata.max_total_currency = phaseSettings.max_total_currency,
+        ruledata.starting_daily_equity = phaseSettings.starting_daily_equity,
+        ruledata.phase = req.phase;
+        console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ ruledata:", ruledata)
+        const response = await axios.post(url, ruledata);
+        console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ response:", response.data);
+        return response.data;
+        
     }
-    catch{
+    catch(error){
+    console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ error:", error)
 
     }
   }

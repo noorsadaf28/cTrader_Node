@@ -1,11 +1,12 @@
 import { CreateTraderDto } from "src/dto/create-trader.dto";
 
 // Interface for AccountService
-export interface IAccountService {
+export interface IAccountInterface {
   createAccountWithCTID(
     createTraderDto: CreateTraderDto,
     userEmail: string,
-    preferredLanguage: string
+    preferredLanguage: string,
+    depositCurrency:string, balance:string
   ): Promise<{
     ctid: number;
     traderLogin: string;
@@ -19,6 +20,7 @@ export interface IAccountService {
     brokerName: string,
     hashedPassword: string
   ): Promise<any>;
+  AccountDetails(res);
 }
 
 // Interface for SpotwareService

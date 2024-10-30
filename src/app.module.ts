@@ -21,6 +21,9 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 import { CtraderAuthService } from './services/exchange/cTrader/auth.service';
 import { AuthController } from './controllers/auth.controller';
 import { SpotwareService } from './services/exchange/cTrader/spotware.account.service';
+import { AccountController } from './controllers/account.controller';
+import { OrderController } from './controllers/order.controller';
+import { OrderPollingService } from './services/exchange/cTrader/order.polling.service';
 
 @Module({
   imports: [ 
@@ -49,7 +52,7 @@ import { SpotwareService } from './services/exchange/cTrader/spotware.account.se
    
     // config
     ConfigModule.forRoot({ envFilePath: '.env', isGlobal: true }),],
-  controllers: [AppController, EvaluationController, BotController, AuthController],
+  controllers: [AppController, EvaluationController, BotController, AuthController, AccountController, OrderController],
   providers:
   [
     AppService,
@@ -97,7 +100,7 @@ import { SpotwareService } from './services/exchange/cTrader/spotware.account.se
       process.env.exchange === 'CTRADER'? CtraderAuthService: CtraderAuthService
       
     },
-    SpotwareService
+    SpotwareService, OrderPollingService, ConfigService,
   ],
 })
 export class AppModule {}

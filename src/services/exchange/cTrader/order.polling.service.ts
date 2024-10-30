@@ -1,9 +1,10 @@
-import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus, Inject } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
 import { CtraderOrderService } from './order.service';
 import { CreateOrderDto } from 'src/dto/create-order.dto';
+import { IOrderInterface } from 'src/services/Interfaces/IOrder.interface';
 
 @Injectable()
 export class OrderPollingService {
@@ -13,7 +14,7 @@ export class OrderPollingService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly CtraderOrderService: CtraderOrderService,
+    @Inject('IOrderInterface') private readonly IOrderInterface:IOrderInterface
   ) {
     this.spotwareApiUrl = `${this.configService.get<string>('SPOTWARE_API_URL')}`;
     this.apiToken = this.configService.get<string>('SPOTWARE_API_TOKEN');
@@ -94,9 +95,9 @@ export class OrderPollingService {
     for (const pos of openPositions) {
       const openOrderData: CreateOrderDto = this.mapOpenPositionToOrderDto(pos);
       try {
-        const existingOrder = await this.CtraderOrderService.findOrderByTicketId(openOrderData.ticket_id);
+        const existingOrder = await this.IOrderInterface.findOrderByTicketId(openOrderData.ticket_id);
         if (!existingOrder) {
-          await this.CtraderOrderService.createOrder(openOrderData);
+          await this.IOrderInterface.createOrder(openOrderData);
           this.logger.log(`New open order created in Xano: ${JSON.stringify(openOrderData)}`);
         } else {
           this.logger.log(`Skipping duplicate open order with ticket_id: ${openOrderData.ticket_id}`);
@@ -109,9 +110,9 @@ export class OrderPollingService {
     for (const pos of closedPositions) {
       const closedOrderData: CreateOrderDto = this.mapClosedPositionToOrderDto(pos);
       try {
-        const existingOrder = await this.CtraderOrderService.findOrderByTicketId(closedOrderData.ticket_id);
+        const existingOrder = await this.IOrderInterface.findOrderByTicketId(closedOrderData.ticket_id);
         if (existingOrder) {
-          await this.CtraderOrderService.updateOrderWithCloseData(closedOrderData);
+          await this.IOrderInterface.updateOrderWithCloseData(closedOrderData);
           this.logger.log(`Closed order updated in Xano: ${JSON.stringify(closedOrderData)}`);
         } else {
           this.logger.log(`No existing open order found for closed order with ticket_id: ${closedOrderData.ticket_id}`);
