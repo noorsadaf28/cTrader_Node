@@ -20,7 +20,7 @@ export class OrderPollingService {
     this.apiToken = this.configService.get<string>('SPOTWARE_API_TOKEN');
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_5_MINUTES)
   async pollPositions() {
     this.logger.log('Polling for open and closed positions...');
     try {
