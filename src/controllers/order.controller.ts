@@ -11,7 +11,7 @@ export class OrderController {
 
   @Post('fetch-open-positions')
   async fetchOpenPositions(): Promise<void> {
-    await this.orderPollingService.pollPositions();
+    //await this.orderPollingService.pollPositions();
   }
 
    

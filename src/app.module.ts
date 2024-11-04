@@ -9,7 +9,6 @@ import { OrderModule } from './module/order.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CtraderAccountService } from './services/exchange/cTrader/account.service';
 import { CtraderBotService } from './services/exchange/cTrader/bot.service';
-import { EvaluationProcessService } from './BotType/Evaluation/evaluationProcess.service';
 import { CtraderEvaluationService } from './services/exchange/cTrader/evaluation.service';
 import { CtraderOrderService } from './services/exchange/cTrader/order.service';
 import { CtraderConnectionService } from './services/exchange/cTrader/connection.service';
@@ -24,6 +23,7 @@ import { SpotwareService } from './services/exchange/cTrader/spotware.account.se
 import { AccountController } from './controllers/account.controller';
 import { OrderController } from './controllers/order.controller';
 import { OrderPollingService } from './services/exchange/cTrader/order.polling.service';
+import { EvaluationBotProcess } from './services/botProcess/evaluationBot.process';
 
 @Module({
   imports: [ 
@@ -73,7 +73,7 @@ import { OrderPollingService } from './services/exchange/cTrader/order.polling.s
     {
       provide:'IBotProcessInterface',
       useClass:
-      process.env.botType === 'Evaluation'? EvaluationProcessService: EvaluationProcessService
+      process.env.botType === 'Evaluation'? EvaluationBotProcess: EvaluationBotProcess
       
     },
     {
