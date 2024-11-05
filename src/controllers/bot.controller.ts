@@ -15,4 +15,15 @@ export class BotController {
         catch(error){
         }
     }
+    @HttpCode(HttpStatus.OK)
+    @Post('stopAllBots')
+    async StopAllBots() 
+    {
+        try{
+            const response = await this.IBotInterface.stopAllBots();
+            return response;
+        }
+        catch(error){
+        }
+    }
 }

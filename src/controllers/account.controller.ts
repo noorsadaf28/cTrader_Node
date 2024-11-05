@@ -7,23 +7,41 @@ import { IAccountInterface } from 'src/services/Interfaces/IAccount.interface';
 export class AccountController {
   constructor(@Inject('IAccountInterface') private readonly IAccountInterface:IAccountInterface) {}
 
+  // @Post('createAccountCtid')
+  // async createAccountWithCTID(
+  //   @Body() createTraderDto: CreateTraderDto,
+  //   @Body('email') userEmail: string,
+  //   @Body('preferredLanguage') preferredLanguage: string,
+  //   @Body('depositCurrency') depositCurrency: string,
+  //   @Body('balance') balance:string
+  // ) {
+  //   try {
+  //     if (!userEmail || !preferredLanguage) {
+  //       throw new HttpException('Email and Preferred Language are required', HttpStatus.BAD_REQUEST);
+  //     }
+
+  //     const response = await this.IAccountInterface.createAccountWithCTID(createTraderDto, userEmail, preferredLanguage, depositCurrency, balance);
+  //     return response;
+      
+  //   } catch (error) {
+  //     throw new HttpException('Failed to create account with cTID', HttpStatus.INTERNAL_SERVER_ERROR);
+  //   }
+  // }
   @Post('createAccountCtid')
-  async createAccountWithCTID(
-    @Body() createTraderDto: CreateTraderDto,
-    @Body('email') userEmail: string,
-    @Body('preferredLanguage') preferredLanguage: string,
-    @Body('depositCurrency') depositCurrency: string,
-    @Body('balance') balance:string
-  ) {
+  @HttpCode(HttpStatus.OK)
+  async createAccountWithCTID(@Body() body) {
     try {
-      if (!userEmail || !preferredLanguage) {
+    console.log("🚀 ~ AccountController ~ accountDetails ~ body:", body)
+
+      if (!body.email || !body.preferredLanguage) {
         throw new HttpException('Email and Preferred Language are required', HttpStatus.BAD_REQUEST);
       }
 
-      const response = await this.IAccountInterface.createAccountWithCTID(createTraderDto, userEmail, preferredLanguage, depositCurrency, balance);
+      const response = await this.IAccountInterface.createAccountWithCTID(body);
       return response;
       
     } catch (error) {
+      console.log("🚀 ~ AccountController ~ createAccountWithCTID ~ error:", error)
       throw new HttpException('Failed to create account with cTID', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
