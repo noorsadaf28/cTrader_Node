@@ -7,12 +7,11 @@ import { IOrderInterface } from 'src/services/Interfaces/IOrder.interface';
 export class OrderController {
   constructor(
     private readonly orderPollingService: OrderPollingService,
-    private readonly orderService: CtraderOrderService,
   ) {}
 
   @Post('fetch-open-positions')
   async fetchOpenPositions(): Promise<void> {
-    await this.orderPollingService.pollPositions();
+    //await this.orderPollingService.pollPositions();
   }
 
    

@@ -1,10 +1,9 @@
-// import { IConnectionInterface } from "./Interfaces/IConnection.interface";
-// import { Injectable, OnModuleInit } from '@nestjs/common';
-// import * as net from 'net';
-// import * as protobuf from 'protobufjs';
-// import * as tls from 'tls';
-
 import { IConnectionInterface } from "./Interfaces/IConnection.interface";
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import * as net from 'net';
+import * as protobuf from 'protobufjs';
+import * as tls from 'tls';
+
 
 export abstract class BaseConnectionService implements IConnectionInterface{
 //     private client: tls.TLSSocket;
@@ -54,11 +53,7 @@ export abstract class BaseConnectionService implements IConnectionInterface{
 //             rejectUnauthorized: false,
 //           }, () => {
 //             console.log('SSL connection established');
-//             this.sendHeartbeat();
-//           });
-    
-//           this.client.on('data', (data: Buffer) => {
-//             //this.handleMessage(data);
+//             //this.sendHeartbeat();
 //           });
 //         });
     
@@ -189,7 +184,7 @@ export abstract class BaseConnectionService implements IConnectionInterface{
 
 //     this.client.write(data);
 //   }
-//   public decode (buffer: GenericObject): any {
+//   public decode (buffer): any {
 //     console.log("here")
 //     const protoMessage = this.getMessageByName("ProtoMessage").decode(buffer);
 //     const payloadType = protoMessage.payloadType;

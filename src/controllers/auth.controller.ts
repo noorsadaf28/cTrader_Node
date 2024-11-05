@@ -1,15 +1,21 @@
-// import { Controller, Get, UseGuards, Request } from '@nestjs/common';
-// import { JwtAuthGuard } from 'src/services/auth/jwt-auth.guard';
-// import { AuthService } from 'src/services/auth/auth.service';
+import { HttpStatus } from "@nestjs/common";
+import { Body, Controller, HttpCode, Inject, Post } from "@nestjs/common/decorators";
+import { IAuthInterface } from "src/services/Interfaces/IAuth.interface";
 
-// @Controller('auth')
-// export class AuthController {
-//   constructor(private readonly authService: AuthService) {}
-
-//   // Example of an endpoint to validate or verify a token
-//   @UseGuards(JwtAuthGuard)
-//   @Get('validate-token')
-//   async validateToken(@Request() req: any) {
-//     return this.authService.validateToken(req.user);
-//   }
-// }
+@Controller()
+export class AuthController {
+    constructor(@Inject('IAuthInterface') private readonly IAuthInterface:IAuthInterface){}
+    @HttpCode(HttpStatus.OK)
+    @Post('getToken')
+    async TokenGenerate(@Body() body) 
+    {
+        try{
+            const response = await this.IAuthInterface.getToken(body);
+            console.log("🚀 ~ AuthController ~ response:", response)
+            return response;
+        }
+        catch(error){
+            console.log("🚀 ~ AuthController ~ error:", error)
+        }
+    }
+}
