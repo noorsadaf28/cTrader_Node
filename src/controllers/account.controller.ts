@@ -1,11 +1,15 @@
-import { Controller, Post, Body, HttpException, HttpStatus, Get, HttpCode, Inject ,Patch} from '@nestjs/common';
-import { CtraderAccountService } from 'src/services/exchange/cTrader/account.service';
+import { Controller, Post, Body, HttpException,HttpCode, HttpStatus, Inject, Logger ,Patch} from '@nestjs/common';
 import { CreateTraderDto } from 'src/dto/create-trader.dto';
 import { IAccountInterface } from 'src/services/Interfaces/IAccount.interface';
 
 @Controller('account')
 export class AccountController {
-  constructor(@Inject('IAccountInterface') private readonly IAccountInterface:IAccountInterface) {}
+  private readonly logger = new Logger(AccountController.name);
+
+  constructor(
+    @Inject('IAccountInterface') 
+    private readonly IAccountInterface: IAccountInterface
+  ) {}
 
   // @Post('createAccountCtid')
   // async createAccountWithCTID(
@@ -38,23 +42,25 @@ export class AccountController {
       }
 
       const response = await this.IAccountInterface.createAccountWithCTID(body);
-      return response;
       
+      return response;
     } catch (error) {
+      this.logger.error(`Failed to create account with CTID for email: ${body.userEmail}`, error.stack);
       console.log("🚀 ~ AccountController ~ createAccountWithCTID ~ error:", error)
       throw new HttpException('Failed to create account with cTID', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
+
   @Post('accountDetails')
   @HttpCode(HttpStatus.OK)
-  async accountDetails(@Body() body ){
-    try{
+  async accountDetails(@Body() body: any) {
+    try {
       const response = await this.IAccountInterface.AccountDetails(body);
+      this.logger.log(`Fetched account details successfully for request: ${JSON.stringify(body)}`);
       return response;
-    }
-    catch(error){
-      console.log("🚀 ~ AccountController ~ accountDetails ~ error:", error)
-      
+    } catch (error) {
+      this.logger.error(`Failed to fetch account details for request: ${JSON.stringify(body)}`, error.stack);
+      throw new HttpException('Failed to retrieve account details', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
@@ -65,10 +71,9 @@ export class AccountController {
     try{
       const response = await this.IAccountInterface.UpdateAccount(body);
       return response;
-    }
-    catch(error){
-      console.log("🚀 ~ AccountController ~ accountDetails ~ error:", error)
-      
+    } catch (error) {
+      this.logger.error(`Failed to fetch account details for request: ${JSON.stringify(body)}`, error.stack);
+      throw new HttpException('Failed to retrieve account details', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 
