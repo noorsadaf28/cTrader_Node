@@ -1,42 +1,44 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { AccountModule } from './module/account.module';
+import { BullModule } from '@nestjs/bull';
+
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { AccountModule } from './module/account.module';
 import { OrderModule } from './module/order.module';
-// Removed TypeOrmModule and Order entity
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { DailyEquityModule } from './module/dailyEquity.module';
+import { AppLogger } from './services/loggers/winston.config';
+
 import { CtraderAccountService } from './services/exchange/cTrader/account.service';
 import { CtraderBotService } from './services/exchange/cTrader/bot.service';
 import { CtraderEvaluationService } from './services/exchange/cTrader/evaluation.service';
 import { CtraderOrderService } from './services/exchange/cTrader/order.service';
 import { CtraderConnectionService } from './services/exchange/cTrader/connection.service';
+import { CtraderAuthService } from './services/exchange/cTrader/auth.service';
+import { SpotwareService } from './services/exchange/cTrader/spotware.account.service';
+
 import { EvaluationController } from './controllers/evaluation.controller';
 import { BotController } from './controllers/bot.controller';
-import { BullModule } from '@nestjs/bull';
-import { activeBotQueue } from 'config/constant';
-import { ExpressAdapter } from '@nestjs/platform-express';
-import { CtraderAuthService } from './services/exchange/cTrader/auth.service';
 import { AuthController } from './controllers/auth.controller';
-import { SpotwareService } from './services/exchange/cTrader/spotware.account.service';
 import { AccountController } from './controllers/account.controller';
 import { OrderController } from './controllers/order.controller';
+import { DailyEquityController } from './controllers/equity.controller';
+
 import { OrderPollingService } from './services/exchange/cTrader/order.polling.service';
 import { EvaluationBotProcess } from './services/botProcess/evaluationBot.process';
 import { IOrderPollingService } from './services/Interfaces/IOrderPollingService';
+import { activeBotQueue } from 'config/constant';
 
 @Module({
-  imports: [ 
-    // Load environment variables globally
+  imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: '.env', // Consolidated .env file path specification
+      envFilePath: '.env',
     }),
-    // Removed TypeORM configuration as it's no longer needed
     ScheduleModule.forRoot(),
     AccountModule,
-    // BULLMQ
+    DailyEquityModule,
     BullModule.forRoot({
       redis: {
         host: 'localhost',
@@ -51,17 +53,19 @@ import { IOrderPollingService } from './services/Interfaces/IOrderPollingService
     }),
   ],
   controllers: [
-    AppController, 
-    EvaluationController, 
-    BotController, 
-    AuthController, 
-    AccountController, 
+    AppController,
+    EvaluationController,
+    BotController,
+    AuthController,
+    AccountController,
     OrderController,
+    DailyEquityController,
   ],
   providers: [
     AppService,
+    AppLogger, // Add AppLogger here
     {
-      provide: 'IAccountInterface', 
+      provide: 'IAccountInterface',
       useClass: process.env.exchange === 'CTRADER' ? CtraderAccountService : CtraderAccountService,
     },
     {
@@ -89,12 +93,16 @@ import { IOrderPollingService } from './services/Interfaces/IOrderPollingService
       useClass: process.env.exchange === 'CTRADER' ? CtraderAuthService : CtraderAuthService,
     },
     {
-      provide: 'IOrderPollingService',  // Added IOrderPollingService provider
-      useClass:process.env.exchange === 'CTRADER' ? OrderPollingService : OrderPollingService,
+      provide: 'IOrderPollingService',
+      useClass: process.env.exchange === 'CTRADER' ? OrderPollingService : OrderPollingService,
     },
-    SpotwareService, 
-    OrderPollingService, // Explicitly added OrderPollingService in providers
+    SpotwareService,
+    OrderPollingService,
     ConfigService,
   ],
 })
-export class AppModule {}
+export class AppModule {
+  constructor(private readonly appLogger: AppLogger) {
+    appLogger.log('Application Module initialized'); // Log module initialization
+  }
+}

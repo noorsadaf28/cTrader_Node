@@ -22,9 +22,9 @@ export class AppLogger implements LoggerService {
           datePattern: 'YYYY-MM-DD',
           maxSize: '20m',
           maxFiles: '14d',
-          zippedArchive: true, // Optional: To zip old log files
+          zippedArchive: true, // To zip old log files
         }),
-        new winston.transports.Console(), // Optional: Also log to console
+        new winston.transports.Console(), // log to console
       ],
     });
   }
