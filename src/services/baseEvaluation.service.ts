@@ -244,4 +244,14 @@ private handleEventData(data: Buffer) {
 
     }
   }
+  async dailyKOD(req){
+    try{
+      const result = req.currentEquity - (req.startingDailyEquity - req.maxDailyCurrency) < 0;
+      return result;
+    }
+    catch(error){
+      console.log("🚀 ~ BaseEvaluationService ~ dailyKOD ~ error:", error)
+      
+    }
+  }
 }

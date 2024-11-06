@@ -3,19 +3,29 @@ import { Queue } from 'bull';
 import { InjectQueue } from '@nestjs/bull';
 import { activeBotQueue } from "config/constant";
 import { Job } from "bull";
+import { Inject } from "@nestjs/common";
+import { IAccountInterface } from "./Interfaces/IAccount.interface";
 
 export abstract class BaseBotService implements IBotInterface{
     private runningBotList = []
-    constructor(@InjectQueue(activeBotQueue) private bot_queue: Queue){
+    constructor(@InjectQueue(activeBotQueue) private bot_queue: Queue, @Inject('IAccountInterface') public readonly IAccountInterface: IAccountInterface){
 
     }
 async RunBot(botInfo){
     console.log("🚀 ~ BaseBotService ~ RunBot ~ botInfo:", botInfo)
     try{
+      const accountResponse = await this.IAccountInterface.createAccountWithCTID(botInfo);
+        console.log("🚀 ~ EvaluationBotProcess ~ startChallenge ~ accountResponse:", accountResponse)
+        if(!accountResponse.traderLogin){
+            return { message: 'Challenge not started. . . ', Challenge
+              : botInfo.Challenge_type, Error:  accountResponse}
+        }
+        botInfo.traderLogin = accountResponse.traderLogin;
+        botInfo.ctid = accountResponse.ctid;
+        botInfo.ctidTraderAccountId = accountResponse.ctidTraderAccountId;
         const bot_queue = await this.bot_queue.add('start-challenge', botInfo)
-
         const newBot = {
-            bot_id: botInfo.bot_id,
+            email: botInfo.email,
             bot_queue_id: bot_queue.id
           };
           

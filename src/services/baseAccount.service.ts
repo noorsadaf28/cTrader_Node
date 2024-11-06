@@ -19,10 +19,7 @@ export abstract class BaseAccountService implements IAccountInterface{
   }
     async createAccountWithCTID(req){
         try {
-          console.log("here")
           const xanoApiUrl = process.env.XANO_API_URL_1;
-        console.log('AccountService initialized with Xano');
-          console.log('Creating cTID with email:', req.email);
           const ctidResponse = await this.createCTID(req.email, req.preferredLanguage);
           const userId = parseInt(ctidResponse.userId);
           console.log("🚀 ~ BaseAccountService ~ userId:", userId)
@@ -50,10 +47,10 @@ export abstract class BaseAccountService implements IAccountInterface{
             "uuid": "jsjnsj",
             "accounts": [{
                 id:userId,
-                status:"Active",
-                currency:req.depositCurrency,
-                initialBalance : req.balance,
-                finalBalance: req.balance
+                status: process.env.active,
+                currency:req.Currency,
+                initialBalance : req.Initial_balance,
+                finalBalance: req.Initial_balance
             }]
           }
     
@@ -137,9 +134,9 @@ export abstract class BaseAccountService implements IAccountInterface{
         try{
           const accessRights = process.env.fullAccess;
           const accountType = process.env.hedged;
-          const balance = req.balance;
+          const balance = req.Initial_balance;
           const brokerName = process.env.brokerName;
-          const depositCurrency = req.depositCurrency;
+          const depositCurrency = req.Currency;
           const groupName = process.env.groupName;
           const hashedPassword = process.env.hashedPassword;
           const leverageInCents = 10000;

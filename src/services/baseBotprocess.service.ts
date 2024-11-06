@@ -6,9 +6,11 @@ import { BaseAccountService } from "./baseAccount.service";
 import { Inject } from "@nestjs/common";
 import { IAccountInterface } from "./Interfaces/IAccount.interface";
 import { IBotInterface } from "./Interfaces/IBot.interface";
+import { format } from 'date-fns';
+
 @Processor(activeBotQueue)
 export abstract class BaseBotProcess implements IBotProcessInterface{
-    public startTime: number;
+    public startTime;
     constructor(@Inject('IAccountInterface') public readonly IAccountInterface: IAccountInterface, @Inject('IBotInterface') public readonly IBotInterface: IBotInterface){
         
     }
@@ -16,7 +18,12 @@ export abstract class BaseBotProcess implements IBotProcessInterface{
     @Process('start-challenge')
     async generate_Bot(botInfo: Job) {
         try {
-            this.startTime = Date.now();
+            const formattedDate = format(new Date(), 'yyyy.MM.dd HH:mm');
+            // console.log(formattedDate); // e.g., "2024.06.25 18:41"
+            // this.startTime = Date();
+            botInfo.data.challengeStartTime = formattedDate;
+            const tempInfo = botInfo.data;
+            botInfo.update(tempInfo)
             this.startChallenge(botInfo);
         }
         catch (error) {
@@ -24,7 +31,6 @@ export abstract class BaseBotProcess implements IBotProcessInterface{
         }
     }
     abstract startChallenge(botInfo: Job);
-    abstract createAccount(botData);
     abstract connectPhase(botInfo: Job);
     async stopBot(botInfo:Job){
         try{
