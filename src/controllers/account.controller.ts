@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpException, HttpStatus, Get, HttpCode, Inject } from '@nestjs/common';
+import { Controller, Post, Body, HttpException, HttpStatus, Get, HttpCode, Inject ,Patch} from '@nestjs/common';
 import { CtraderAccountService } from 'src/services/exchange/cTrader/account.service';
 import { CreateTraderDto } from 'src/dto/create-trader.dto';
 import { IAccountInterface } from 'src/services/Interfaces/IAccount.interface';
@@ -57,4 +57,21 @@ export class AccountController {
       
     }
   }
+
+
+  @Patch('updateAccount')
+  @HttpCode(HttpStatus.OK)
+  async updateAccount(@Body() body ){
+    try{
+      const response = await this.IAccountInterface.UpdateAccount(body);
+      return response;
+    }
+    catch(error){
+      console.log("🚀 ~ AccountController ~ accountDetails ~ error:", error)
+      
+    }
+  }
+
+ 
+
 }

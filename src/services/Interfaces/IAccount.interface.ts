@@ -3,6 +3,8 @@ import { CreateTraderDto } from "src/dto/create-trader.dto";
 // Interface for AccountService
 export interface IAccountInterface {
   createAccountWithCTID(body);
+  UpdateAccount(body);
+  
   // createAccountWithCTID(
   //   createTraderDto: CreateTraderDto,
   //   userEmail: string,
