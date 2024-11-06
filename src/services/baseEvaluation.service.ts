@@ -13,6 +13,7 @@ import { BaseAccountService } from "./baseAccount.service";
 import { AccountConfig, PhaseSettings } from "src/data/rulesData";
 import axios from "axios";
 import { IAccountInterface } from 'src/services/Interfaces/IAccount.interface';
+import { Job } from "bull";
 
 export abstract class BaseEvaluationService implements IEvaluationInterface, OnModuleInit {
 private client: tls.TLSSocket;
@@ -212,17 +213,18 @@ private handleEventData(data: Buffer) {
     console.log(`Symbol: ${symbol} | Price: ${price} | Timestamp: ${timestamp}`);
     // Here, you can store the data in a database or cache as needed
   }
-  async rulesEvaluation(req){
+  async rulesEvaluation(botInfo:Job){
     try{
-      const accountdata = await this.IAccountInterface.AccountDetails(req);
+      const accountdata = await this.IAccountInterface.AccountDetails(botInfo.data);
         let ruledata = new RulesRequest;
         const url = process.env.makeEvalURL;
-        const phaseSettings = PhaseSettings[req.phase];
+        const phaseSettings = PhaseSettings[botInfo.data.Phase];
+        console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ phaseSettings:", phaseSettings)
         ruledata.account = accountdata.login;
         ruledata.balance = accountdata.balance;
-        ruledata.request_type = req.request_type;
+        ruledata.request_type = botInfo.data.request_type;
         ruledata.metatrader = AccountConfig.METATRADER_PLATFORM,
-        ruledata.status = req.status;
+        ruledata.status = botInfo.data.status;
         ruledata.initial_balance = accountdata.balance;
         ruledata.max_daily_loss = phaseSettings.max_daily_loss;
         ruledata.max_loss = phaseSettings.max_loss;
@@ -232,7 +234,7 @@ private handleEventData(data: Buffer) {
         ruledata.max_daily_currency = phaseSettings.max_daily_currency,
         ruledata.max_total_currency = phaseSettings.max_total_currency,
         ruledata.starting_daily_equity = phaseSettings.starting_daily_equity,
-        ruledata.phase = req.phase;
+        ruledata.phase = botInfo.data.Phase;
         console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ ruledata:", ruledata)
         const response = await axios.post(url, ruledata);
         console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ response:", response.data);
@@ -242,6 +244,16 @@ private handleEventData(data: Buffer) {
     catch(error){
     console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ error:", error)
 
+    }
+  }
+  async dailyKOD(req){
+    try{
+      const result = req.currentEquity - (req.startingDailyEquity - req.maxDailyCurrency) < 0;
+      return result;
+    }
+    catch(error){
+      console.log("🚀 ~ BaseEvaluationService ~ dailyKOD ~ error:", error)
+      
     }
   }
 }

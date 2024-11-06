@@ -8,34 +8,45 @@ export class AccountController {
 
   constructor(
     @Inject('IAccountInterface') 
-    private readonly accountService: IAccountInterface
+    private readonly IAccountInterface: IAccountInterface
   ) {}
 
-  @Post('createAccountCtid')
-  async createAccountWithCTID(
-    @Body() createTraderDto: CreateTraderDto,
-    @Body('email') userEmail: string,
-    @Body('preferredLanguage') preferredLanguage: string,
-    @Body('depositCurrency') depositCurrency: string,
-    @Body('balance') balance: string
-  ) {
-    if (!userEmail || !preferredLanguage) {
-      this.logger.warn('Missing required fields: email or preferredLanguage');
-      throw new HttpException('Email and Preferred Language are required', HttpStatus.BAD_REQUEST);
-    }
+  // @Post('createAccountCtid')
+  // async createAccountWithCTID(
+  //   @Body() createTraderDto: CreateTraderDto,
+  //   @Body('email') userEmail: string,
+  //   @Body('preferredLanguage') preferredLanguage: string,
+  //   @Body('depositCurrency') depositCurrency: string,
+  //   @Body('balance') balance:string
+  // ) {
+  //   try {
+  //     if (!userEmail || !preferredLanguage) {
+  //       throw new HttpException('Email and Preferred Language are required', HttpStatus.BAD_REQUEST);
+  //     }
 
+  //     const response = await this.IAccountInterface.createAccountWithCTID(createTraderDto, userEmail, preferredLanguage, depositCurrency, balance);
+  //     return response;
+      
+  //   } catch (error) {
+  //     throw new HttpException('Failed to create account with cTID', HttpStatus.INTERNAL_SERVER_ERROR);
+  //   }
+  // }
+  @Post('createAccountCtid')
+  @HttpCode(HttpStatus.OK)
+  async createAccountWithCTID(@Body() body) {
     try {
-      const response = await this.accountService.createAccountWithCTID(
-        createTraderDto,
-        userEmail,
-        preferredLanguage,
-        depositCurrency,
-        balance
-      );
-      this.logger.log(`Account created successfully for email: ${userEmail}`);
+    console.log("🚀 ~ AccountController ~ accountDetails ~ body:", body)
+
+      if (!body.email || !body.preferredLanguage) {
+        throw new HttpException('Email and Preferred Language are required', HttpStatus.BAD_REQUEST);
+      }
+
+      const response = await this.IAccountInterface.createAccountWithCTID(body);
+      
       return response;
     } catch (error) {
-      this.logger.error(`Failed to create account with CTID for email: ${userEmail}`, error.stack);
+      this.logger.error(`Failed to create account with CTID for email: ${body.userEmail}`, error.stack);
+      console.log("🚀 ~ AccountController ~ createAccountWithCTID ~ error:", error)
       throw new HttpException('Failed to create account with cTID', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
@@ -44,7 +55,7 @@ export class AccountController {
   @HttpCode(HttpStatus.OK)
   async accountDetails(@Body() body: any) {
     try {
-      const response = await this.accountService.AccountDetails(body);
+      const response = await this.IAccountInterface.AccountDetails(body);
       this.logger.log(`Fetched account details successfully for request: ${JSON.stringify(body)}`);
       return response;
     } catch (error) {

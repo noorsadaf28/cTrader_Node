@@ -7,5 +7,5 @@ export interface IEvaluationInterface{
     subscribeToSpotQuotes(payload);
     unsubscribeFromSpotQuotes(subscriptionId);
     rulesEvaluation(body);
-
+    dailyKOD(req)
 }

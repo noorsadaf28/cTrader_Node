@@ -17,46 +17,40 @@ export abstract class BaseAccountService implements IAccountInterface{
         this.spotwareApiUrl = process.env.SPOTWARE_API_URL;
         this.apiToken = process.env.SPOTWARE_API_TOKEN;
   }
-    async createAccountWithCTID(
-        createTraderDto: CreateTraderDto,
-        userEmail: string,
-        preferredLanguage: string,
-        depositCurrency:string
-        , balance:string
-      ): Promise<{ ctid: number; traderLogin: string; ctidTraderAccountId: number; message?: string }> {
+    async createAccountWithCTID(req){
         try {
           const xanoApiUrl = process.env.XANO_API_URL_1;
-        console.log('AccountService initialized with Xano');
-          console.log('Creating cTID with email:', userEmail);
-          const ctidResponse = await this.createCTID(userEmail, preferredLanguage);
+          const ctidResponse = await this.createCTID(req.email, req.preferredLanguage);
           const userId = parseInt(ctidResponse.userId);
           console.log("🚀 ~ BaseAccountService ~ userId:", userId)
     
           if (!userId) {
             throw new HttpException('Failed to create cTID', HttpStatus.INTERNAL_SERVER_ERROR);
           }
-    
-          const traderResponse = await this.createTrader(createTraderDto);
-          const traderLogin = traderResponse.login;
-    
-          if (!traderLogin) {
-            throw new HttpException('Failed to create Trader Account', HttpStatus.INTERNAL_SERVER_ERROR);
+          
+          const createTrader = await this.createReq(req);
+          console.log("🚀 ~ BaseAccountService ~ createAccountWithCTID ~ createTrader:", createTrader)
+          const traderResponse = await this.createTrader(createTrader);
+          console.log("🚀 ~ BaseAccountService ~ createAccountWithCTID ~ traderResponse:", traderResponse)
+          if(!traderResponse.login){
+            return traderResponse;
           }
+          const traderLogin = traderResponse.login;
     
           const linkResponse = await this.linkAccountToCTID(
             traderLogin,
             userId,
-            createTraderDto.brokerName,
-            createTraderDto.hashedPassword
+            createTrader.brokerName,
+            createTrader.hashedPassword
           );
           const dataJson= {
             "uuid": "jsjnsj",
             "accounts": [{
                 id:userId,
-                status:"Active",
-                currency:depositCurrency,
-                initialBalance : balance,
-                finalBalance: balance
+                status: process.env.active,
+                currency:req.Currency,
+                initialBalance : req.Initial_balance,
+                finalBalance: req.Initial_balance
             }]
           }
     
@@ -69,7 +63,7 @@ export abstract class BaseAccountService implements IAccountInterface{
             ctidTraderAccountId: linkResponse.ctidTraderAccountId,
           };
         } catch (error) {
-          console.error('Error in createAccountWithCTID:', error.message);
+          console.error('Error in createAccountWithCTID:', error);
           throw new HttpException('Failed to create account with cTID', HttpStatus.INTERNAL_SERVER_ERROR);
         }
       }
@@ -87,7 +81,7 @@ export abstract class BaseAccountService implements IAccountInterface{
     
         }
         catch(error){
-          console.log("🚀 ~ CtraderAccountService ~ AccountDetails ~ error:", error.data)
+          console.log("🚀 ~ CtraderAccountService ~ AccountDetails ~ error:", error)
           
         }
       }
@@ -105,15 +99,17 @@ export abstract class BaseAccountService implements IAccountInterface{
           throw new HttpException('Failed to create cTID', HttpStatus.INTERNAL_SERVER_ERROR);
         }
       }
-      async createTrader(createTraderDto: CreateTraderDto): Promise<any> {
+      async createTrader(createTrader){
         try {
-          const response = await axios.post(`${this.spotwareApiUrl}/v2/webserv/traders`, createTraderDto, {
+          const response = await axios.post(`${this.spotwareApiUrl}/v2/webserv/traders`, createTrader, {
             headers: { Authorization: `Bearer ${this.apiToken}` },
             params: { token: this.apiToken },
           });
           return response.data;
         } catch (error) {
-          throw new HttpException('Failed to create Trader Account', HttpStatus.INTERNAL_SERVER_ERROR);
+          console.log("🚀 ~ BaseAccountService ~ createTrader ~ error:", error.response.data)
+          return error.response.data;
+          //throw new HttpException('Failed to create Trader Account', HttpStatus.INTERNAL_SERVER_ERROR);
         }
       }
       async linkAccountToCTID(traderLogin: number, userId: number, brokerName: string, traderPasswordHash: string): Promise<any> {
@@ -133,6 +129,28 @@ export abstract class BaseAccountService implements IAccountInterface{
         } catch (error) {
           throw new HttpException('Failed to link Trader Account to cTID', HttpStatus.INTERNAL_SERVER_ERROR);
         }
+      }
+      async createReq(req){
+        try{
+          const accessRights = process.env.fullAccess;
+          const accountType = process.env.hedged;
+          const balance = req.Initial_balance;
+          const brokerName = process.env.brokerName;
+          const depositCurrency = req.Currency;
+          const groupName = process.env.groupName;
+          const hashedPassword = process.env.hashedPassword;
+          const leverageInCents = 10000;
+          const totalMarginCalculationType = process.env.margingType;
+          const createTrader = {
+            accessRights, accountType, balance, brokerName, depositCurrency, groupName, hashedPassword, leverageInCents, totalMarginCalculationType
+          }
+          return createTrader;
+        }
+        catch(error){
+          console.log("🚀 ~ BaseAccountService ~ createDto ~ error:", error)
+          
+        }
+        
       }
     
 }

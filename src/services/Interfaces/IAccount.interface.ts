@@ -2,17 +2,18 @@ import { CreateTraderDto } from "src/dto/create-trader.dto";
 
 // Interface for AccountService
 export interface IAccountInterface {
-  createAccountWithCTID(
-    createTraderDto: CreateTraderDto,
-    userEmail: string,
-    preferredLanguage: string,
-    depositCurrency:string, balance:string
-  ): Promise<{
-    ctid: number;
-    traderLogin: string;
-    ctidTraderAccountId: number;
-    message?: string;
-  }>;
+  createAccountWithCTID(body);
+  // createAccountWithCTID(
+  //   createTraderDto: CreateTraderDto,
+  //   userEmail: string,
+  //   preferredLanguage: string,
+  //   depositCurrency:string, balance:string
+  // ): Promise<{
+  //   ctid: number;
+  //   traderLogin: string;
+  //   ctidTraderAccountId: number;
+  //   message?: string;
+  // }>;
 
   linkAccountToCTID(
     traderLogin: number,
