@@ -35,6 +35,20 @@ export class EvaluationBotProcess extends BaseBotProcess{
         this.stopBot(botInfo);
     }
     async sendOnInit(botInfo:Job){
-        this.stopBot(botInfo);
+        try{
+
+            botInfo.data.status = "Active";
+            botInfo.data.request_type = "OnInit";
+            botInfo.data.accountId = botInfo.data.traderLogin;
+            const tempInfo = botInfo.data;
+            botInfo.update(tempInfo);
+            console.log("🚀 ~ EvaluationBotProcess ~ sendOnInit ~ botInfo:", botInfo.data)
+
+            this.IEvaluationInterface.rulesEvaluation(botInfo)
+        }
+        catch(error){
+            console.log("🚀 ~ EvaluationBotProcess ~ sendOnInit ~ error:", error)
+            
+        }
     }
 }

@@ -7,11 +7,12 @@ import { Inject } from "@nestjs/common";
 import { IAccountInterface } from "./Interfaces/IAccount.interface";
 import { IBotInterface } from "./Interfaces/IBot.interface";
 import { format } from 'date-fns';
+import { IEvaluationInterface } from "./Interfaces/IEvaluation.interface";
 
 @Processor(activeBotQueue)
 export abstract class BaseBotProcess implements IBotProcessInterface{
     public startTime;
-    constructor(@Inject('IAccountInterface') public readonly IAccountInterface: IAccountInterface, @Inject('IBotInterface') public readonly IBotInterface: IBotInterface){
+    constructor(@Inject('IAccountInterface') public readonly IAccountInterface: IAccountInterface, @Inject('IBotInterface') public readonly IBotInterface: IBotInterface, @Inject('IEvaluationInterface') public readonly IEvaluationInterface: IEvaluationInterface){
         
     }
 

@@ -26,4 +26,16 @@ export class BotController {
         catch(error){
         }
     }
+    @HttpCode(HttpStatus.OK)
+    @Post('activebots')
+    async GetActiveBots(){
+        try{
+            const response = await this.IBotInterface.ActiveBotIds();
+            return response;
+        }
+        catch(error){
+            console.log("🚀 ~ BotController ~ GetActiveBots ~ error:", error)
+            
+        }
+    }
 }
