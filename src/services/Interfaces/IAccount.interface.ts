@@ -4,6 +4,8 @@ import { CreateTraderDto } from "src/dto/create-trader.dto";
 export interface IAccountInterface {
   createAccountWithCTID(body);
   UpdateAccount(body);
+  UpdateAccountBalance(body)
+
   
   // createAccountWithCTID(
   //   createTraderDto: CreateTraderDto,

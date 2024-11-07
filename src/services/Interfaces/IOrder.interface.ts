@@ -3,3 +3,11 @@ export interface IOrderInterface {
   createOrder(openOrderData);
   updateOrderWithCloseData(closedOrderData);
 }
+
+
+
+
+
+  
+  
+  

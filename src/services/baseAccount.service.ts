@@ -223,6 +223,58 @@ export abstract class BaseAccountService implements IAccountInterface {
   }
 
 
+  async UpdateAccountBalance(req) {
+  
+    console.log("update balance request........");
+    console.log("update Account balance request-----",req);
+    if (!req.login) {
+      return {
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Account ID is required',
+        error: true,
+      };
+    }
+    if (!req.preciseAmount) {
+      return {
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: 'Access rights are required',
+        error: true,
+      };
+    }
+    
+    try {
+
+      const updateData = {
+        preciseAmount: req.preciseAmount,
+        login:req.login,
+        type:req.type
+      };
+      const updateUrl = `${this.spotwareApiUrl}/v2/webserv/traders/${req.login}/changebalance`;
+      
+      console.log("updateUrl",updateUrl);
+    
+      const response = await axios.post(updateUrl, updateData, {
+        headers: { Authorization: `Bearer ${this.apiToken}` },
+        params: { token: this.apiToken },
+      });
+
+
+      console.log("Account updated successfully:", response.data);
+      console.log("response", response.status);
+      return {
+        statusCode: response.status,
+        message: "Account Balance updated successfully",
+        error: false
+      };
+     
+    } catch (error) {
+      console.error("Error updating account:", error.response?.data || error.message);
+    }
+   }
+ 
+ 
+ 
+
 
 
 
