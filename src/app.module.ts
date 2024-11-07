@@ -29,6 +29,7 @@ import { OrderPollingService } from './services/exchange/cTrader/order.polling.s
 import { EvaluationBotProcess } from './services/botProcess/evaluationBot.process';
 import { IOrderPollingService } from './services/Interfaces/IOrderPollingService';
 import { activeBotQueue } from 'config/constant';
+import { BaseOrderService } from './services/baseOrder.service';
 
 @Module({
   imports: [
@@ -92,12 +93,11 @@ import { activeBotQueue } from 'config/constant';
       provide: 'IAuthInterface',
       useClass: process.env.exchange === 'CTRADER' ? CtraderAuthService : CtraderAuthService,
     },
-    {
-      provide: 'IOrderPollingService',
-      useClass: process.env.exchange === 'CTRADER' ? OrderPollingService : OrderPollingService,
-    },
+    // {
+    //   provide: 'IOrderPollingService',
+    //   useClass: process.env.exchange === 'CTRADER' ? BaseOrderService : BaseOrderService,
+    // },
     SpotwareService,
-    OrderPollingService,
     ConfigService,
   ],
 })

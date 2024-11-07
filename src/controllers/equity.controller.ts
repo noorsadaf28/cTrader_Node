@@ -7,7 +7,7 @@ export class DailyEquityController {
 
   constructor(private readonly dailyEquityService: DailyEquityService) {}
 
-  // Fetch daily equity data for the past day and post it to Xano
+  // Fetch daily equity data for the past day and sync it with Xano
   @Get('sync')
   async syncDailyEquityData() {
     this.logger.log('Received request to sync daily equity data');
@@ -19,8 +19,8 @@ export class DailyEquityController {
       // Fetch data from the external service
       const equityData = await this.dailyEquityService.fetchDailyEquityData(fromDate, toDate);
       
-      // Post data to Xano
-      const result = await this.dailyEquityService.postDailyEquityToXano(equityData);
+      // Check and update or create data in Xano
+      const result = await this.dailyEquityService.checkAndUpdateDailyEquityInXano(equityData);
       
       this.logger.log('Daily equity data synced successfully');
       return result;

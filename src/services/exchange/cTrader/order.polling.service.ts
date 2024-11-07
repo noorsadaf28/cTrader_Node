@@ -20,18 +20,18 @@ export class OrderPollingService {
     this.apiToken = this.configService.get<string>('SPOTWARE_API_TOKEN');
   }
 
-  // @Cron(CronExpression.EVERY_5_MINUTES)
-  // async pollPositions() {
-  //   this.logger.log('Polling for open and closed positions...');
-  //   try {
-  //     const openPositions = await this.fetchOpenPositions();
-  //     const closedPositions = await this.fetchClosedPositions();
+  @Cron(CronExpression.EVERY_MINUTE)
+  async pollPositions() {
+    this.logger.log('Polling for open and closed positions...');
+    try {
+      const openPositions = await this.fetchOpenPositions();
+      const closedPositions = await this.fetchClosedPositions();
 
-  //     await this.updateXanoWithPositions(openPositions, closedPositions);
-  //   } catch (error) {
-  //     this.logger.error(`Error polling positions: ${error.message}`);
-  //   }
-  // }
+      await this.updateXanoWithPositions(openPositions, closedPositions);
+    } catch (error) {
+      this.logger.error(`Error polling positions: ${error.message}`);
+    }
+  }
 
   private async fetchOpenPositions() {
     try {
