@@ -13,6 +13,9 @@ export class OrderController {
   async fetchOpenPositions(): Promise<void> {
     //await this.orderPollingService.pollPositions();
   }
-
+  @Post('symbolInfo')
+  async getSymbolInfo(){
+    
+  }
    
 }

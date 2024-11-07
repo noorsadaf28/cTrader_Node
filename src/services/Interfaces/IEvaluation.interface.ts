@@ -4,8 +4,8 @@ import { Socket } from 'net';
 import * as tls from 'tls';
 import * as net from 'net';
 export interface IEvaluationInterface{
-    subscribeToSpotQuotes(payload);
-    unsubscribeFromSpotQuotes(subscriptionId);
+    // subscribeToSpotQuotes(payload);
+    // unsubscribeFromSpotQuotes(subscriptionId);
     rulesEvaluation(body);
     dailyKOD(req)
 }
