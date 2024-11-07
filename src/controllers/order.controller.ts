@@ -14,6 +14,9 @@ export class OrderController {
   async fetchOpenPositions() {
     await this.IOrderInterface.pollPositions();
   }
-
+  @Post('symbolInfo')
+  async getSymbolInfo(){
+    
+  }
    
 }

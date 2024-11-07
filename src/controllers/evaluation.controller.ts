@@ -18,12 +18,12 @@ export class EvaluationController {
       symbolId: [101, 102], // List of symbol IDs
       subscribeToSpotTimestamp: true // If you want timestamps
     };
-    return this.IEvaluationInterface.subscribeToSpotQuotes(subscribePayload);
+   // return this.IEvaluationInterface.subscribeToSpotQuotes(subscribePayload);
   }
   @HttpCode(HttpStatus.OK)
   @Post('unsubscribe/:subscriptionId')
   async unsubscribeFromQuotes(@Param('subscriptionId') subscriptionId: string) {
-    return this.IEvaluationInterface.unsubscribeFromSpotQuotes(subscriptionId);
+    //return this.IEvaluationInterface.unsubscribeFromSpotQuotes(subscriptionId);
   }
   @HttpCode(HttpStatus.OK)
   @Post('rulesEvaluation')
