@@ -19,11 +19,12 @@ export class BaseOrderService implements IOrderInterface {
   }
 
   // Polling logic integrated into the BaseOrderService
-  @Cron(CronExpression.EVERY_30_SECONDS)
+  @Cron(CronExpression.EVERY_5_MINUTES)
   async pollPositions() {
     this.logger.log('Polling for open and closed positions...');
     try {
       const openPositions = await this.fetchOpenPositions();
+      
       const closedPositions = await this.fetchClosedPositions();
 
       await this.updateXanoWithPositions(openPositions, closedPositions);
@@ -38,7 +39,7 @@ export class BaseOrderService implements IOrderInterface {
         headers: { Authorization: `Bearer ${this.apiToken}` },
         params: { token: this.apiToken },
       });
-      this.logger.log('Fetched open positions from Spotware');
+      this.logger.log('Fetched open positions from Spotware',response.data);
       return this.parseCsvData(response.data);
     } catch (error) {
       this.logger.error(`Failed to fetch open positions: ${error.message}`);
@@ -56,7 +57,7 @@ export class BaseOrderService implements IOrderInterface {
         headers: { Authorization: `Bearer ${this.apiToken}` },
         params: { from, to, token: this.apiToken },
       });
-      this.logger.log('Fetched closed positions from Spotware');
+      this.logger.log('Fetched closed positions from Spotware',response.data);
       return this.parseCsvData(response.data);
     } catch (error) {
       this.logger.error(`Failed to fetch closed positions: ${error.message}`);
@@ -132,7 +133,7 @@ export class BaseOrderService implements IOrderInterface {
 
   async updateOrderWithCloseData(closeOrderData: CreateOrderDto): Promise<IOrderInterface> {
     try {
-      const response = await axios.put(`${this.xanoApiUrl}/${closeOrderData.ticket_id}`, closeOrderData);
+      const response = await axios.patch(`${this.xanoApiUrl}/${closeOrderData.ticket_id}`, closeOrderData);
       return response.data;
     } catch (error) {
       throw new HttpException(`Failed to update order in Xano: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);

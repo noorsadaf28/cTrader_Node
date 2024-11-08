@@ -2,8 +2,21 @@ import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { HttpService, } from '@nestjs/axios';
 import * as dayjs from 'dayjs';
 import { AxiosResponse } from 'axios';
-import { log } from 'console';
 import * as https from 'https'; 
+
+
+import { Cron } from '@nestjs/schedule';
+
+import * as utc from 'dayjs/plugin/utc';
+
+import * as timezone from 'dayjs/plugin/timezone';
+
+
+
+dayjs.extend(utc);
+
+dayjs.extend(timezone);
+
 
 @Injectable()
 export class DailyEquityService {
@@ -18,8 +31,43 @@ export class DailyEquityService {
     this.apiToken = process.env.SPOTWARE_API_TOKEN;
     this.xanoEquityUrl = process.env.XANO_API_EQUITYURL;
   
-  this.httpService.axiosRef.defaults.httpsAgent = new https.Agent({ rejectUnauthorized: false });
-  }
+     // Disable SSL verification for HTTPS requests
+
+     this.httpService.axiosRef.defaults.httpsAgent = new https.Agent({ rejectUnauthorized: false });
+
+    }
+  
+  
+  
+    // Cron job that runs daily at 00:00 Madrid time
+  
+    @Cron('0 0 * * *', {
+  
+      timeZone: 'Europe/Madrid',
+  
+    })
+  
+    async handleCron() {
+  
+      this.logger.log('Executing daily equity update via cron job at 00:00 Madrid time');
+  
+      try {
+  
+        const result = await this.updateDailyEquityForTraders();
+  
+        this.logger.log('Daily equity update process completed successfully');
+  
+        this.logger.debug(`Update result: ${JSON.stringify(result)}`);
+  
+      } catch (error) {
+  
+        this.logger.error(`Cron job failed: ${error.message}`);
+  
+      }
+  
+    }
+
+
   // Fetch daily equity data from external service
   async fetchDailyEquityData(fromDate: string, toDate: string) {
     this.logger.log(`Fetching daily equity data from Spotware for date range ${fromDate} to ${toDate}`);
@@ -42,7 +90,7 @@ export class DailyEquityService {
 
       const mappedData = response.data.trader.map((trader) => ({
         account: trader.login,
-        starting_daily_equity: trader.balance.toString(),
+        starting_daily_equity: trader.balance.toString(),// Convert balance to string as required by Xano
         sde_date: dayjs().format('YYYY-MM-DD'),
         gmt_date: dayjs().toISOString(),
         created_at: dayjs().toISOString(),
@@ -77,7 +125,7 @@ export class DailyEquityService {
     for (const data of equityData) {
       try {
         this.logger.debug(`Processing account: ${data.account}`);
-        console.log(`${this.xanoEquityUrl}/${data.account}/`,"hyhy");
+        console.log(`${this.xanoEquityUrl}/${data.account}/`, "Xano check URL");
         const existingDataResponse = await this.httpService
           .get(`${this.xanoEquityUrl}/${data.account}/`, {
             headers: { 'Content-Type': 'application/json' },
