@@ -50,7 +50,8 @@ export class BaseOrderService implements IOrderInterface {
   private async fetchClosedPositions() {
     const now = new Date();
     const to = now.toISOString();
-    const from = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    const from = new Date(now.getTime() - 1 * 60 * 1000).toISOString();
+
 
     try {
       const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/closedPositions`, {

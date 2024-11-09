@@ -52,26 +52,27 @@ export abstract class BaseAccountService implements IAccountInterface {
       );
 
       const dataJson = {
-        "uuid": generatedUuid, // Use the generated UUID here
-        "accounts": [{
-          id: userId,
+        uuid: generatedUuid, // Use the generated UUID here
+        accounts: [{
+          id: traderLogin,
           status: process.env.active,
           currency: req.Currency,
-          initialBalance: req.Initial_balance,
-          finalBalance: req.Initial_balance
+          initial_balance: req.Initial_balance,
+          final_balance: req.Initial_balance
         }]
       };
-// Enhanced console log to display data types and values
-console.log("Data Structure and Types:");
-console.log("UUID:", generatedUuid, "| Type:", typeof generatedUuid);
-console.log("User ID:", userId, "| Type:", typeof userId);
-console.log("Status:", process.env.active, "| Type:", typeof process.env.active);
-console.log("Currency:", req.Currency, "| Type:", typeof req.Currency);
-console.log("Initial Balance:", req.Initial_balance, "| Type:", typeof req.Initial_balance);
-console.log("Final Balance:", req.Initial_balance, "| Type:", typeof req.Initial_balance);
+      
+      // Enhanced console log to display data types and values for each property in accounts
+      console.log("Data Structure and Types for accounts[0]:");
+      console.log("UUID:", generatedUuid, "| Type:", typeof generatedUuid);
+      console.log("ID:", dataJson.accounts[0].id, "| Type:", typeof dataJson.accounts[0].id);
+      console.log("Status:", dataJson.accounts[0].status, "| Type:", typeof dataJson.accounts[0].status);
+      console.log("Currency:", dataJson.accounts[0].currency, "| Type:", typeof dataJson.accounts[0].currency);
+      console.log("Initial Balance:", dataJson.accounts[0].initial_balance, "| Type:", typeof dataJson.accounts[0].initial_balance);
+      console.log("Final Balance:", dataJson.accounts[0].final_balance, "| Type:", typeof dataJson.accounts[0].final_balance);
+      
 
-// Log the entire dataJson object
-console.log("Constructed dataJson:", dataJson, "| Type:", typeof dataJson);
+
       const response = await axios.post(xanoApiUrl, dataJson);
       console.log('Account created in Xano:', response.data);
 
@@ -170,4 +171,122 @@ console.log("Constructed dataJson:", dataJson, "| Type:", typeof dataJson);
       console.log("🚀 ~ BaseAccountService ~ createReq ~ error:", error);
     }
   }
+
+
+  async UpdateAccount(req) {
+
+    if (!req.accountId) {
+    return {
+      statusCode: HttpStatus.BAD_REQUEST,
+      message: 'Account ID is required',
+      error: true,
+    };
+  }
+  if (!req.accessRights) {
+    return {
+      statusCode: HttpStatus.BAD_REQUEST,
+      message: 'Access rights are required',
+      error: true,
+    };
+  }
+
+  console.log("Updating account with request:", req);
+  try {
+    const updateData = {
+      accessRights: req.accessRights
+    };
+    const updateUrl = `${this.spotwareApiUrl}/v2/webserv/traders/${req.accountId}`;
+
+    const response = await axios.patch(updateUrl, updateData, {
+      headers: { Authorization: `Bearer ${this.apiToken}` },
+      params: { token: this.apiToken },
+    });
+
+    console.log("Account updated successfully:", response.data);
+    console.log("response", response.status);
+
+    return {
+      statusCode: response.status,
+      message: "Account updated successfully",
+      error: false
+    };
+  } catch (error) {
+    console.error("Error updating account:", error.response?.data || error.message);
+    if (error.code === 'ECONNABORTED') {
+      return {
+        statusCode: HttpStatus.REQUEST_TIMEOUT,
+        message: "The request timed out. Please try again later.",
+        error: true
+      };
+    }
+    if (error.response) {
+      const statusCode = error.response.status;
+      const errorMessage = error.response.data?.message || "Failed to update account";
+      return {
+        statusCode,
+        message: errorMessage,
+        error: true,
+        data: error.response.data
+      };
+    }
+    // Fallback for Unknown Errors
+    return {
+      statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+      message: "An unexpected error occurred",
+      error: true,
+      data: error.message 
+    };
+    throw new HttpException('Failed to update account', HttpStatus.INTERNAL_SERVER_ERROR);
+  }
+}
+
+
+async UpdateAccountBalance(req) {
+
+  console.log("update balance request........");
+  console.log("update Account balance request-----",req);
+  if (!req.login) {
+    return {
+      statusCode: HttpStatus.BAD_REQUEST,
+      message: 'Account ID is required',
+      error: true,
+    };
+  }
+  if (!req.preciseAmount) {
+    return {
+      statusCode: HttpStatus.BAD_REQUEST,
+      message: 'Access rights are required',
+      error: true,
+    };
+  }
+  
+  try {
+
+    const updateData = {
+      preciseAmount: req.preciseAmount,
+      login:req.login,
+      type:req.type
+    };
+    const updateUrl = `${this.spotwareApiUrl}/v2/webserv/traders/${req.login}/changebalance`;
+    
+    console.log("updateUrl",updateUrl);
+  
+    const response = await axios.post(updateUrl, updateData, {
+      headers: { Authorization: `Bearer ${this.apiToken}` },
+      params: { token: this.apiToken },
+    });
+
+
+    console.log("Account updated successfully:", response.data);
+    console.log("response", response.status);
+    return {
+      statusCode: response.status,
+      message: "Account Balance updated successfully",
+      error: false
+    };
+   
+  } catch (error) {
+    console.error("Error updating account:", error.response?.data || error.message);
+  }
+ }
 }
