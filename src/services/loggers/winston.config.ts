@@ -9,12 +9,12 @@ export class AppLogger implements LoggerService {
 
   constructor() {
     this.logger = winston.createLogger({
-      level: 'info',
+      level: 'debug', // Set the level to debug to include debug and verbose logs
       format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.printf(({ timestamp, level, message, stack }) => {
           return `${timestamp} [${level.toUpperCase()}]: ${message} ${stack ? `\nStack: ${stack}` : ''}`;
-        })
+        }),
       ),
       transports: [
         new winston.transports.DailyRotateFile({
@@ -22,9 +22,9 @@ export class AppLogger implements LoggerService {
           datePattern: 'YYYY-MM-DD',
           maxSize: '20m',
           maxFiles: '14d',
-          zippedArchive: true, // To zip old log files
+          zippedArchive: true,
         }),
-        new winston.transports.Console(), // log to console
+        new winston.transports.Console(),
       ],
     });
   }
@@ -34,7 +34,7 @@ export class AppLogger implements LoggerService {
   }
 
   error(message: string, trace: string) {
-    this.logger.error(message, { stack: trace }); // Include trace in the log
+    this.logger.error(message, { stack: trace });
   }
 
   warn(message: string) {

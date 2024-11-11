@@ -17,7 +17,7 @@ export class BaseOrderService implements IOrderInterface {
     this.spotwareApiUrl = configService.get<string>('SPOTWARE_API_URL');
     this.apiToken = configService.get<string>('SPOTWARE_API_TOKEN');
   }
-// Polling logic integrated into the BaseOrderService
+// Polling logic integrated into the BaseOrderService 
   @Cron(CronExpression.EVERY_5_MINUTES)
   async pollPositions() {
     this.logger.log('Polling for open and closed positions...');
@@ -47,7 +47,7 @@ export class BaseOrderService implements IOrderInterface {
   private async fetchClosedPositions() {
     const now = new Date();
     const to = now.toISOString();
-    const from = new Date(now.getTime() - 1 * 60 * 1000).toISOString();
+    const from = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
 
     try {
       const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/closedPositions`, {
