@@ -51,4 +51,39 @@ export class EvaluationBotProcess extends BaseBotProcess{
             
         }
     }
+    async sendWon(botInfo:Job){
+        try{
+
+            botInfo.data.status = "Won";
+            botInfo.data.request_type = "Won";
+            botInfo.data.accountId = botInfo.data.traderLogin;
+            const tempInfo = botInfo.data;
+            botInfo.update(tempInfo);
+            console.log("🚀 ~ EvaluationBotProcess ~ sendWon ~ botInfo:", botInfo.data)
+
+            this.IEvaluationInterface.rulesEvaluation(botInfo)
+        }
+        catch(error){
+            console.log("🚀 ~ EvaluationBotProcess ~ sendWon ~ error:", error)
+            
+        }
+    }
+    async sendTotalKOD(botInfo:Job){
+        try{
+
+            botInfo.data.status = "Failed";
+            botInfo.data.request_type = "TotalKOD";
+            botInfo.data.daily_kod = "false";
+            botInfo.data.accountId = botInfo.data.traderLogin;
+            const tempInfo = botInfo.data;
+            botInfo.update(tempInfo);
+            console.log("🚀 ~ EvaluationBotProcess ~ sendWon ~ botInfo:", botInfo.data)
+
+            this.IEvaluationInterface.rulesEvaluation(botInfo)
+        }
+        catch(error){
+            console.log("🚀 ~ EvaluationBotProcess ~ sendWon ~ error:", error)
+            
+        }
+    }
 }

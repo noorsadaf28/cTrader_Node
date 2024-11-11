@@ -10,10 +10,6 @@ option java_outer_classname = "CSContainerMessages";
 
 import "CSModelMessages_External.proto";
 
-service SpotQuoteService {
-    // Define an RPC method for subscribing to spot quotes
-    rpc SubscribeSpotQuotes (ProtoSubscribeSpotQuotesReq) returns (stream ProtoSpotEvent);
-}
 // Hello event is sent as the first message after connection
 message ProtoHelloEvent {
     optional ProtoCSPayloadType payloadType = 1 [default = PROTO_HELLO_EVENT];
