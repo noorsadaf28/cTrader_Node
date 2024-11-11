@@ -48,7 +48,7 @@ export class DailyEquityService {
       const response: AxiosResponse = await this.httpService
         .get(`${this.spotwareApiUrl}/v2/webserv/traders/`, {
           params: {
-            from: fromDate,
+            from: dayjs('2024-09-01').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS'),
             to: toDate,
             fields: 'login,balance,minEquityDaily,maxEquityDaily',
             token: this.apiToken,
@@ -117,7 +117,7 @@ export class DailyEquityService {
 
   // Update the equity for traders daily
   async updateDailyEquityForTraders() {
-    const fromDate = dayjs().subtract(1, 'day').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS');
+  const fromDate = dayjs('2024-09-01').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS');
     const toDate = dayjs().startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS');
 
     this.logger.log(`Starting daily equity update for traders from ${fromDate} to ${toDate}`);
