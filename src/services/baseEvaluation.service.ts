@@ -14,11 +14,21 @@ import { AccountConfig, PhaseSettings } from "src/data/rulesData";
 import axios from "axios";
 import { IAccountInterface } from 'src/services/Interfaces/IAccount.interface';
 import { Job } from "bull";
+// import { 
+//   ProtoSubscribeSpotQuotesReq, 
+//   ProtoSubscribeSpotQuotesRes, 
+//   ProtoUnsubscribeSpotQuotesReq, 
+//   ProtoUnsubscribeSpotQuotesRes,
+//   ProtoSpotEvent 
+// } from 'protobufs/CSMessages_External.proto';
+//import { ProtoSubscribeSpotQuotesReq, ProtoUnsubscribeSpotQuotesRes, ProtoSpotEvent } from './protobufs/CSMessages_External.proto';
 
 export abstract class BaseEvaluationService implements IEvaluationInterface, OnModuleInit {
-private client: tls.TLSSocket;
+private client: net.Socket;
   private root: protobuf.Root;
+  private root2: protobuf.Root;
   private messageBuffer: Buffer = Buffer.alloc(0);
+  private subscriptions: Set<number> = new Set(); // Store active subscriptions
 
   constructor(@Inject('IAccountInterface') private readonly IAccountInterface:IAccountInterface) {}
 
@@ -29,63 +39,67 @@ private client: tls.TLSSocket;
   private async initializeConnection() {
     try {
       // Load Protobuf definitions
-      this.root = await protobuf.load('./protobufs/CSMessages_External.proto');
+      this.root = await protobuf.load('protobufs/CSMessages_External.proto');
+      this.root2 = await protobuf.load('protobufs/CommonMessages_External.proto');
       const proxyHost = process.env.host;
       const proxyPort = parseInt(process.env.port);
 
       // Establish a secure connection to the server
       const client = new net.Socket();
-      // client.connect(proxyPort, proxyHost, () => {
-      //   console.log('Connected to server');
-      //   this.client = tls.connect(
-      //     {
-      //       socket: client,
-      //       rejectUnauthorized: false,
-      //     },
-      //     () => {
-      //       console.log('SSL connection established');
-      //     },
-      //   );
-      // });
-
-      // // Handle incoming data
-      // client.on('data', (data: Buffer) => {
-      //   console.log("Raw data received:", data);
-      //   this.handleEventData(data);
-      // });
       this.client = tls.connect({
-        host: proxyHost,
-        port: proxyPort,
+        host: "uat-demo.p.ctrader.com",
+        port: 5011,
         rejectUnauthorized: false,
       });
       
       this.client.on('connect', () => {
         console.log('SSL connection established');
+        //this.createHeartbeatMessage()
+        this.authManager()
+        this.subscribeToSpotQuotes()
+      //   const payload = {
+      //     "symbolId":[1],
+      //   "payloadType":601
+      // }
+      // this.subscribeToSpotQuotes(payload)
       });
       
       this.client.on('data', (data: Buffer) => {
-        console.log("Raw data received:", data);
+        console.log("Raw data received:", data.toString());
         this.handleEventData(data);
       });
     } catch (error) {
       console.error('Error initializing connection:', error);
     }
   }
-  async subscribeToSpotQuotes(payload) {
+  async subscribeToSpotQuotes() {
     try {
       if (!this.root) throw new Error('Protobuf root not loaded');
   
       // Lookup and create a SubscribeSpotQuotesReq message
       const SubscribeSpotQuotesReq = this.root.lookupType('ProtoSubscribeSpotQuotesReq');
-      const message = SubscribeSpotQuotesReq.create({
-        payloadType: payload.payloadType || 'PROTO_SUBSCRIBE_SPOT_QUOTES_REQ',
-        ctidTraderAccountId:payload.ctidTraderAccountId,
-        symbolId: payload.symbolId,
-        subscribeToSpotTimestamp: payload.subscribeToSpotTimestamp || false
+      const ProtoPayloadType =  this.root.lookupEnum("ProtoCSPayloadType");
+      const ProtoMessage =  this.root2.lookupType("ProtoMessage");
+
+      const authPayload = SubscribeSpotQuotesReq.create({
+        symbolId:[101],
+        subscribeToSpotTimestamp: true
       });
+      const payloadBuffer = SubscribeSpotQuotesReq.encode(authPayload).finish();
+    
+      // Create a ProtoMessage wrapping the heartbeat
+      const message = ProtoMessage.create({
+        payloadType: ProtoPayloadType.values.PROTO_SUBSCRIBE_SPOT_QUOTES_REQ,
+        payload: payloadBuffer,
+      });
+      // const message = SubscribeSpotQuotesReq.create({
+      //   payloadType: 601,
+      //   symbolId: 1,
+      //   subscribeToSpotTimestamp: true
+      // });
       console.log("🚀 ~ BaseEvaluationService ~ subscribeToSpotQuotes ~ message:", message)
   
-      const messageBuffer = Buffer.from(SubscribeSpotQuotesReq.encode(message).finish());
+      const messageBuffer = Buffer.from(ProtoMessage.encode(message).finish());
 
       const fullMessage = this.prefixMessageWithLength(messageBuffer);
   
@@ -95,6 +109,7 @@ private client: tls.TLSSocket;
       // Await server response
       return await new Promise((resolve, reject) => {
         this.client.once('data', (data: Buffer) => {
+          console.log("🚀 ~ BaseEvaluationService ~ this.client.once ~ data:", data.toString())
           try {
             // Extract length-prefixed message
             const responseLength = data.readUInt32BE(0);
@@ -138,6 +153,12 @@ private client: tls.TLSSocket;
       return { message: "Subscription request failed", error: error.message };
     }
   }
+//   subscribe(req: ProtoSubscribeSpotQuotesReq): ProtoSubscribeSpotQuotesRes {
+//     req.symbolId.forEach(id => this.subscriptions.add(id));
+//     console.log(`Subscribed to symbols: ${Array.from(this.subscriptions)}`);
+    
+//     return { payloadType: ProtoCSPayloadType.PROTO_SUBSCRIBE_SPOT_QUOTES_RES };
+// }
   async unsubscribeFromSpotQuotes(subscriptionId: string) {
     try {
       const UnsubscribeSpotQuotesReq = this.root.lookupType('ProtoUnsubscribeSpotQuotesReq');
@@ -213,6 +234,105 @@ private handleEventData(data: Buffer) {
     console.log(`Symbol: ${symbol} | Price: ${price} | Timestamp: ${timestamp}`);
     // Here, you can store the data in a database or cache as needed
   }
+  async authManager(){
+    try {
+      if (!this.root) throw new Error('Protobuf root not loaded');
+  
+      // Lookup and create a ProtoManagerAuthReq message
+      const ManagerAuthReq = this.root.lookupType('ProtoManagerAuthReq');
+      const ProtoPayloadType =  this.root.lookupEnum("ProtoCSPayloadType");
+      const ProtoMessage =  this.root2.lookupType("ProtoMessage");
+
+      const authPayload = ManagerAuthReq.create({
+        plantId: "propsandbox",
+        environmentName: "demo",
+        login: 30017,
+        passwordHash: "68bf947cb75f1d31eea2e83afd062a06"
+        
+      });
+      const payloadBuffer = ManagerAuthReq.encode(authPayload).finish();
+    
+      // Create a ProtoMessage wrapping the heartbeat
+      const message = ProtoMessage.create({
+        payloadType: ProtoPayloadType.values.PROTO_MANAGER_AUTH_REQ,
+        payload: payloadBuffer,
+      });
+      // const message = ManagerAuthReq.create({
+      //   payloadType: 301,
+      //   plantId: "propsandbox",
+      //   environmentName: "demo",
+      //   login: 30017,
+      //   passwordHash: "68bf947cb75f1d31eea2e83afd062a06"
+      // });
+      console.log("🚀 ~ BaseEvaluationService ~ authManager ~ message:", message)
+  
+      const messageBuffer = Buffer.from(ProtoMessage.encode(message).finish());
+      const fullMessage = this.prefixMessageWithLength(messageBuffer);
+  
+      const writeResult = this.client.write(fullMessage);
+      console.log("Sent authorization request:", writeResult);
+  
+      return await new Promise((resolve, reject) => {
+        this.client.once('data', (data: Buffer) => {
+          console.log("🚀 ~ BaseEvaluationService ~ this.client.once ~ data:", data.toString())
+          try {
+            const responseLength = data.readUInt32BE(0);
+            const responseBuffer = data.slice(4, 4 + responseLength);
+  
+            const ManagerAuthRes = this.root.lookupType('ProtoManagerAuthRes');
+            const err = ManagerAuthRes.verify(responseBuffer);
+            if (err) throw new Error(err);
+  
+            const authResponse = ManagerAuthRes.decode(responseBuffer);
+            console.log("Authorization response:", authResponse);
+  
+            if (authResponse) {
+              resolve({ message: "Authorization successful", permissions: authResponse });
+            } else {
+              reject(new Error("Unexpected response type or missing permissions"));
+            }
+          } catch (error) {
+            console.error("Decoding error:", error.message);
+            reject(new Error("Error decoding authorization response: " + error.message));
+          }
+        });
+  
+        setTimeout(() => {
+          reject(new Error('Authorization request timed out'));
+        }, 5000);
+      });
+    } catch (error) {
+      console.error('Authorization request failed:', error.message);
+      return { message: "Authorization request failed", error: error.message };
+    }
+  }
+  async createHeartbeatMessage() {
+    // Load compiled Protobuf schema
+   // const root = await protobuf.load("path/to/compiled.json");
+  
+    // Get message types from schema
+    const ProtoHeartbeatEvent =  this.root2.lookupType("ProtoHeartbeatEvent");
+    const ProtoMessage =  this.root2.lookupType("ProtoMessage");
+    const ProtoPayloadType =  this.root.lookupEnum("ProtoPayloadType");
+    //console.log("🚀 ~ BaseEvaluationService ~ createHeartbeatMessage ~ ProtoPayloadType:", ProtoPayloadType)
+  
+    // Create a ProtoHeartbeatEvent payload
+    const heartbeatPayload = ProtoHeartbeatEvent.create({});
+    const payloadBuffer = ProtoHeartbeatEvent.encode(heartbeatPayload).finish();
+  
+    // Create a ProtoMessage wrapping the heartbeat
+    const message = ProtoMessage.create({
+      payloadType: ProtoPayloadType.values.PROTO_HEARTBEAT_EVENT,
+      payload: payloadBuffer
+    });
+    console.log("🚀 ~ BaseEvaluationService ~ createHeartbeatMessage ~ message:", message)
+  
+    // Encode the final message
+    const messageBuffer = ProtoMessage.encode(message).finish();
+    console.log("Serialized ProtoMessage:", messageBuffer);
+  
+    return messageBuffer;
+  }
   async rulesEvaluation(botInfo:Job){
     try{
       const accountdata = await this.IAccountInterface.AccountDetails(botInfo.data);
@@ -247,6 +367,26 @@ private handleEventData(data: Buffer) {
     }
   }
   async dailyKOD(req){
+    try{
+      const result = req.currentEquity - (req.startingDailyEquity - req.maxDailyCurrency) < 0;
+      return result;
+    }
+    catch(error){
+      console.log("🚀 ~ BaseEvaluationService ~ dailyKOD ~ error:", error)
+      
+    }
+  }
+  async TotalKOD(req){
+    try{
+      const result = req.currentEquity - (req.startingDailyEquity - req.maxDailyCurrency) < 0;
+      return result;
+    }
+    catch(error){
+      console.log("🚀 ~ BaseEvaluationService ~ dailyKOD ~ error:", error)
+      
+    }
+  }
+  async ConsistencyKOD(req){
     try{
       const result = req.currentEquity - (req.startingDailyEquity - req.maxDailyCurrency) < 0;
       return result;
