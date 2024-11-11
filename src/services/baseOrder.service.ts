@@ -17,15 +17,13 @@ export class BaseOrderService implements IOrderInterface {
     this.spotwareApiUrl = configService.get<string>('SPOTWARE_API_URL');
     this.apiToken = configService.get<string>('SPOTWARE_API_TOKEN');
   }
-
-  // Polling logic integrated into the BaseOrderService
-  @Cron(CronExpression.EVERY_30_SECONDS)
+// Polling logic integrated into the BaseOrderService
+  @Cron(CronExpression.EVERY_5_MINUTES)
   async pollPositions() {
     this.logger.log('Polling for open and closed positions...');
     try {
       const openPositions = await this.fetchOpenPositions();
       const closedPositions = await this.fetchClosedPositions();
-
       await this.updateXanoWithPositions(openPositions, closedPositions);
     } catch (error) {
       this.logger.error(`Error during polling: ${error.message}`);
@@ -38,8 +36,8 @@ export class BaseOrderService implements IOrderInterface {
         headers: { Authorization: `Bearer ${this.apiToken}` },
         params: { token: this.apiToken },
       });
-      this.logger.log('Fetched open positions from Spotware');
-      return this.parseCsvData(response.data);
+      this.logger.log('Fetched open positions from Spotware',response.data);
+      return this.parseOpenPositionsCsv(response.data);
     } catch (error) {
       this.logger.error(`Failed to fetch open positions: ${error.message}`);
       throw new HttpException('Failed to fetch open positions', HttpStatus.FORBIDDEN);
@@ -49,7 +47,7 @@ export class BaseOrderService implements IOrderInterface {
   private async fetchClosedPositions() {
     const now = new Date();
     const to = now.toISOString();
-    const from = new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    const from = new Date(now.getTime() - 1 * 60 * 1000).toISOString();
 
     try {
       const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/closedPositions`, {
@@ -57,14 +55,14 @@ export class BaseOrderService implements IOrderInterface {
         params: { from, to, token: this.apiToken },
       });
       this.logger.log('Fetched closed positions from Spotware');
-      return this.parseCsvData(response.data);
+      return this.parseClosedPositionsCsv(response.data);
     } catch (error) {
       this.logger.error(`Failed to fetch closed positions: ${error.message}`);
       throw new HttpException('Failed to fetch closed positions', HttpStatus.FORBIDDEN);
     }
   }
 
-  private parseCsvData(csvData: string): any[] {
+  private parseOpenPositionsCsv(csvData: string): any[] {
     const rows = csvData.split('\n').slice(1); // Skip header row
     return rows
       .filter((row) => row.trim())
@@ -84,6 +82,35 @@ export class BaseOrderService implements IOrderInterface {
           stake: columns[10],
           spreadBetting: columns[11],
           usedMargin: columns[12],
+        };
+      });
+  }
+
+  private parseClosedPositionsCsv(csvData: string): any[] {
+    const rows = csvData.split('\n').slice(1); // Skip header row
+    return rows
+      .filter((row) => row.trim())
+      .map((row) => {
+        const columns = row.split(',');
+        return {
+          login: columns[0],
+          positionId: columns[1],
+          openTimestamp: columns[2],
+          closeTimestamp: columns[3],
+          closePrice: columns[4],
+          direction: columns[5],
+          volume: columns[6],
+          symbol: columns[7],
+          commission: columns[8],
+          swap: columns[9],
+          pnl: columns[10],
+          depositConversionRate: columns[11],
+          usdConversionRate: columns[12],
+          bookType: columns[13],
+          stake: columns[14],
+          spreadBetting: columns[15],
+          entryPrice: columns[16],
+          dealId: columns[17],
         };
       });
   }
@@ -112,7 +139,9 @@ export class BaseOrderService implements IOrderInterface {
           await this.updateOrderWithCloseData(closedOrderData);
           this.logger.log(`Closed order updated in Xano: ${JSON.stringify(closedOrderData)}`);
         } else {
-          this.logger.log(`No existing open order found for closed order with ticket_id: ${closedOrderData.ticket_id}`);
+          this.logger.log(`No existing open order found for closed order with ticket_id: ${closedOrderData.ticket_id}. Creating new entry.`);
+          await this.createOrder(closedOrderData);
+          this.logger.log(`New closed order created in Xano: ${JSON.stringify(closedOrderData)}`);
         }
       } catch (error) {
         this.logger.error(`Failed to update closed position in Xano: ${error.message}`);
@@ -121,6 +150,7 @@ export class BaseOrderService implements IOrderInterface {
   }
 
   // Implementation for IOrderInterface methods
+
   async createOrder(createOrderDto: CreateOrderDto): Promise<IOrderInterface> {
     try {
       const response = await axios.post(this.xanoApiUrl, createOrderDto);
@@ -132,7 +162,7 @@ export class BaseOrderService implements IOrderInterface {
 
   async updateOrderWithCloseData(closeOrderData: CreateOrderDto): Promise<IOrderInterface> {
     try {
-      const response = await axios.put(`${this.xanoApiUrl}/${closeOrderData.ticket_id}`, closeOrderData);
+      const response = await axios.patch(`${this.xanoApiUrl}/${closeOrderData.ticket_id}`, closeOrderData);
       return response.data;
     } catch (error) {
       throw new HttpException(`Failed to update order in Xano: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -150,7 +180,6 @@ export class BaseOrderService implements IOrderInterface {
       throw new HttpException(`Error fetching order: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
-
   // Helper methods for mapping positions to DTOs
   private mapOpenPositionToOrderDto(position: any): CreateOrderDto {
     return {
@@ -183,6 +212,7 @@ export class BaseOrderService implements IOrderInterface {
       broker: 'Spotware',
       open_reason: position.bookType || 'AUTO',
       close_reason: 'AUTO',
+    
     };
   }
 }

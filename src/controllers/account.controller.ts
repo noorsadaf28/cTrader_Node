@@ -1,4 +1,4 @@
-import { Controller, Post, Body, HttpException,HttpCode, HttpStatus, Inject, Logger } from '@nestjs/common';
+import { Controller, Post, Body, HttpException,HttpCode, HttpStatus, Inject, Logger, Patch } from '@nestjs/common';
 import { CreateTraderDto } from 'src/dto/create-trader.dto';
 import { IAccountInterface } from 'src/services/Interfaces/IAccount.interface';
 
@@ -62,5 +62,29 @@ export class AccountController {
       this.logger.error(`Failed to fetch account details for request: ${JSON.stringify(body)}`, error.stack);
       throw new HttpException('Failed to retrieve account details', HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+  @Patch('updateAccount')
+  @HttpCode(HttpStatus.OK)
+  async updateAccount(@Body() body ){
+    try{
+      const response = await this.IAccountInterface.UpdateAccount(body);
+      return response;
+    } catch (error) {
+      this.logger.error(`Failed to fetch account details for request: ${JSON.stringify(body)}`, error.stack);
+      throw new HttpException('Failed to retrieve account details', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+ 
+
+  @Post('updateAccountBalance')
+  @HttpCode(HttpStatus.OK)
+  async updateAccountBalance (@Body() body){
+   try {
+     const response = await this.IAccountInterface.UpdateAccountBalance(body)
+     return response
+   } catch (error){
+     console.log("🚀 ~ AccountController ~ accountDetails ~ error:",error);
+   }
   }
 }
