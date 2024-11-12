@@ -34,6 +34,17 @@ private client: net.Socket;
 
   async onModuleInit() {
     await this.initializeConnection();
+
+    this.client.on('end', () => {
+      console.log('Connection ended by server');
+      //this.initializeConnection();
+    });
+    
+    // Listen for 'close' event, which happens when the connection fully closes
+    this.client.on('close', (hadError) => {
+      console.log(`Connection closed${hadError ? ' due to an error' : ''}`);
+      console.log('Socket destroyed:', this.client.destroyed); // Will be true after the socket is fully closed
+    });
   }
 
   private async initializeConnection() {
@@ -51,23 +62,22 @@ private client: net.Socket;
         port: 5011,
         rejectUnauthorized: false,
       });
-      
+      // Enable keep-alive to prevent idle timeout
+      this.client.setKeepAlive(true, 10000);
       this.client.on('connect', () => {
         console.log('SSL connection established');
         //this.createHeartbeatMessage()
         this.authManager()
         this.subscribeToSpotQuotes()
-      //   const payload = {
-      //     "symbolId":[1],
-      //   "payloadType":601
-      // }
-      // this.subscribeToSpotQuotes(payload)
       });
       
       this.client.on('data', (data: Buffer) => {
         console.log("Raw data received:", data.toString());
         this.handleEventData(data);
       });
+      setInterval(() => {
+        this.createHeartbeatMessage();
+      }, 5000);
     } catch (error) {
       console.error('Error initializing connection:', error);
     }
@@ -330,7 +340,8 @@ private handleEventData(data: Buffer) {
     // Encode the final message
     const messageBuffer = ProtoMessage.encode(message).finish();
     console.log("Serialized ProtoMessage:", messageBuffer);
-  
+    // const writeResult = this.client.write(messageBuffer);
+    // console.log("Sent authorization request:", writeResult);
     return messageBuffer;
   }
   async rulesEvaluation(botInfo:Job){
@@ -363,6 +374,14 @@ private handleEventData(data: Buffer) {
     }
     catch(error){
     console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ error:", error)
+
+    }
+  }
+  async checkRules(botInfo:Job){
+    try{
+
+    }
+    catch(error){
 
     }
   }
