@@ -1,7 +1,8 @@
-import { Controller, Post, Get, Inject, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Get, Inject, HttpCode, HttpStatus, Body } from '@nestjs/common';
 import { OrderPollingService } from 'src/services/baseOrderPolling.service';
 import { CtraderOrderService } from 'src/services/exchange/cTrader/order.service';
 import { IOrderInterface } from 'src/services/Interfaces/IOrder.interface';
+import {Job} from 'bullmq';
 
 @Controller('order')
 export class OrderController {
@@ -11,8 +12,8 @@ export class OrderController {
 
   @Post('fetchOrders')
   @HttpCode(HttpStatus.OK)
-  async fetchOpenPositions() {
-    await this.IOrderInterface.pollPositions();
+  async fetchOpenPositions(@Body() body) {
+    await this.IOrderInterface.pollPositions(body);
   }
   @Post('symbolInfo')
   async getSymbolInfo(){
