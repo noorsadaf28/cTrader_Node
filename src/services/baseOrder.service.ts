@@ -4,6 +4,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import axios from 'axios';
 import { CreateOrderDto } from 'src/dto/create-order.dto';
 import { IOrderInterface } from './Interfaces/IOrder.interface';
+import {Job} from 'bull';
 
 @Injectable()
 export class BaseOrderService implements IOrderInterface {
@@ -17,26 +18,28 @@ export class BaseOrderService implements IOrderInterface {
     this.spotwareApiUrl = configService.get<string>('SPOTWARE_API_URL');
     this.apiToken = configService.get<string>('SPOTWARE_API_TOKEN');
   }
-// Polling logic integrated into the BaseOrderService
+
+  // Polling logic with login parameter
   @Cron(CronExpression.EVERY_5_MINUTES)
-  async pollPositions() {
-    this.logger.log('Polling for open and closed positions...');
+  async pollPositions(botInfo:Job) {
+    const login = botInfo.data.traderLogin;  // replace this with the desired login value or fetch dynamically if needed
+    this.logger.log(`Polling for open and closed positions for login: ${login}...`);
     try {
-      const openPositions = await this.fetchOpenPositions();
-      const closedPositions = await this.fetchClosedPositions();
+      const openPositions = await this.fetchOpenPositions(login);
+      const closedPositions = await this.fetchClosedPositions(login);
       await this.updateXanoWithPositions(openPositions, closedPositions);
     } catch (error) {
       this.logger.error(`Error during polling: ${error.message}`);
     }
   }
 
-  private async fetchOpenPositions() {
+  private async fetchOpenPositions(login: number) {
     try {
       const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/openPositions`, {
         headers: { Authorization: `Bearer ${this.apiToken}` },
-        params: { token: this.apiToken },
+        params: { token: this.apiToken, login },
       });
-      this.logger.log('Fetched open positions from Spotware',response.data);
+      this.logger.log('Fetched open positions from Spotware', response.data);
       return this.parseOpenPositionsCsv(response.data);
     } catch (error) {
       this.logger.error(`Failed to fetch open positions: ${error.message}`);
@@ -44,15 +47,15 @@ export class BaseOrderService implements IOrderInterface {
     }
   }
 
-  private async fetchClosedPositions() {
+  private async fetchClosedPositions(login: number) {
     const now = new Date();
     const to = now.toISOString();
-    const from = new Date(now.getTime() - 1 * 60 * 1000).toISOString();
+    const from = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
 
     try {
       const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/closedPositions`, {
         headers: { Authorization: `Bearer ${this.apiToken}` },
-        params: { from, to, token: this.apiToken },
+        params: { from, to, token: this.apiToken, login },
       });
       this.logger.log('Fetched closed positions from Spotware');
       return this.parseClosedPositionsCsv(response.data);

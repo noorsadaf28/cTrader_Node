@@ -3,7 +3,10 @@ import { AppModule } from './app.module';
 import { activeBotQueue } from 'config/constant';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+   const app = await NestFactory.create(AppModule, {
+    // logger: new AppLogger(),
+  });
+
   await app.listen(3000);
   app.setGlobalPrefix('ctrader');
   console.log(`------------------------------Exchange set to: ⚡${process.env.exchange}------------------------------`);
@@ -11,3 +14,6 @@ async function bootstrap() {
 console.log(`------------📬 Queue : ${activeBotQueue} ----------`)
 }
 bootstrap();
+
+
+
