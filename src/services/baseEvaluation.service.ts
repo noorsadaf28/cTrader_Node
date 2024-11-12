@@ -68,16 +68,13 @@ private client: net.Socket;
         console.log('SSL connection established');
         //this.createHeartbeatMessage()
         this.authManager()
-        this.subscribeToSpotQuotes()
+        //this.subscribeToSpotQuotes()
       });
       
       this.client.on('data', (data: Buffer) => {
         console.log("Raw data received:", data.toString());
         this.handleEventData(data);
       });
-      setInterval(() => {
-        this.createHeartbeatMessage();
-      }, 5000);
     } catch (error) {
       console.error('Error initializing connection:', error);
     }
@@ -374,6 +371,15 @@ private handleEventData(data: Buffer) {
     }
     catch(error){
     console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ error:", error)
+
+    }
+  }
+  async symbolList (){
+    try{
+
+    }
+    catch(error){
+    console.log("🚀 ~ BaseEvaluationService ~ symbolList ~ error:", error)
 
     }
   }
