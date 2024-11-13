@@ -34,17 +34,6 @@ private client: tls.TLSSocket;
 
   async onModuleInit() {
     await this.initializeConnection();
-
-    this.client.on('end', () => {
-      console.log('Connection ended by server');
-      this.initializeConnection();
-    });
-    
-    // Listen for 'close' event, which happens when the connection fully closes
-    this.client.on('close', (hadError) => {
-      console.log(`Connection closed${hadError ? ' due to an error' : ''}`);
-      console.log('Socket destroyed:', this.client.destroyed); // Will be true after the socket is fully closed
-    });
   }
 
   private async initializeConnection() {
@@ -73,6 +62,16 @@ private client: tls.TLSSocket;
       
       this.client.on('data', (data: Buffer) => {
         this.handleEventData(data);
+      });
+      this.client.on('end', () => {
+        console.log('Connection ended by server');
+        this.reconnect();
+      });
+      
+      // Listen for 'close' event, which happens when the connection fully closes
+      this.client.on('close', (hadError) => {
+        console.log(`Connection closed${hadError ? ' due to an error' : ''}`);
+        console.log('Socket destroyed:', this.client.destroyed); // Will be true after the socket is fully closed
       });
     } catch (error) {
       console.error('Error initializing connection:', error);
@@ -522,5 +521,11 @@ private handleEventData(data: Buffer) {
       console.log("🚀 ~ BaseEvaluationService ~ dailyKOD ~ error:", error)
       
     }
+  }
+  private reconnect() {
+    setTimeout(() => {
+      console.log('Reconnecting...');
+      this.initializeConnection(); // Reinitialize the connection
+    }, 1000); // Wait 1 seconds before reconnecting
   }
 }

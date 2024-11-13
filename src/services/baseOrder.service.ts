@@ -25,7 +25,7 @@ export class BaseOrderService implements IOrderInterface {
     this.logger.log(`Polling for open and closed positions for login: ${login}...`);
     try {
       const openPositions = await this.fetchOpenPositions(login);
-      console.log("🚀 ~ BaseOrderService ~ pollPositions ~ openPositions:", openPositions);
+      //console.log("🚀 ~ BaseOrderService ~ pollPositions ~ openPositions:", openPositions);
       for (let i = 0; i < openPositions.length; i++) {
         if (!botInfo.data.symbols.includes(openPositions[i].symbol)) {
           botInfo.data.symbols.push(openPositions[i].symbol);
