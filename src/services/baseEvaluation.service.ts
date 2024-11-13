@@ -24,7 +24,7 @@ import { Job } from "bull";
 //import { ProtoSubscribeSpotQuotesReq, ProtoUnsubscribeSpotQuotesRes, ProtoSpotEvent } from './protobufs/CSMessages_External.proto';
 
 export abstract class BaseEvaluationService implements IEvaluationInterface, OnModuleInit {
-private client: net.Socket;
+private client: tls.TLSSocket;
   private root: protobuf.Root;
   private root2: protobuf.Root;
   private messageBuffer: Buffer = Buffer.alloc(0);
@@ -37,7 +37,7 @@ private client: net.Socket;
 
     this.client.on('end', () => {
       console.log('Connection ended by server');
-      //this.initializeConnection();
+      this.initializeConnection();
     });
     
     // Listen for 'close' event, which happens when the connection fully closes
@@ -72,100 +72,188 @@ private client: net.Socket;
       });
       
       this.client.on('data', (data: Buffer) => {
-        console.log("Raw data received:", data.toString());
         this.handleEventData(data);
       });
     } catch (error) {
       console.error('Error initializing connection:', error);
     }
   }
-  async subscribeToSpotQuotes() {
-    try {
-      if (!this.root) throw new Error('Protobuf root not loaded');
-  
-      // Lookup and create a SubscribeSpotQuotesReq message
-      const SubscribeSpotQuotesReq = this.root.lookupType('ProtoSubscribeSpotQuotesReq');
-      const ProtoPayloadType =  this.root.lookupEnum("ProtoCSPayloadType");
-      const ProtoMessage =  this.root2.lookupType("ProtoMessage");
+  // async subscribeToSpotQuotes(botInfo:Job) {
+  //   try {
+  //     if (!this.root) throw new Error('Protobuf root not loaded');
+  //     const symbolIds = await this.symbolList(botInfo.data.symbols)
+  //     // Lookup and create a SubscribeSpotQuotesReq message
+  //     const SubscribeSpotQuotesReq = this.root.lookupType('ProtoSubscribeSpotQuotesReq');
+  //     const ProtoPayloadType =  this.root.lookupEnum("ProtoCSPayloadType");
+  //     const ProtoMessage =  this.root2.lookupType("ProtoMessage");
 
-      const authPayload = SubscribeSpotQuotesReq.create({
-        symbolId:[101],
-        subscribeToSpotTimestamp: true
-      });
-      const payloadBuffer = SubscribeSpotQuotesReq.encode(authPayload).finish();
+  //     const authPayload = SubscribeSpotQuotesReq.create({
+  //       symbolId:symbolIds,
+  //       subscribeToSpotTimestamp: true
+  //     });
+  //     const payloadBuffer = SubscribeSpotQuotesReq.encode(authPayload).finish();
     
-      // Create a ProtoMessage wrapping the heartbeat
-      const message = ProtoMessage.create({
-        payloadType: ProtoPayloadType.values.PROTO_SUBSCRIBE_SPOT_QUOTES_REQ,
-        payload: payloadBuffer,
-      });
-      // const message = SubscribeSpotQuotesReq.create({
-      //   payloadType: 601,
-      //   symbolId: 1,
-      //   subscribeToSpotTimestamp: true
-      // });
-      console.log("🚀 ~ BaseEvaluationService ~ subscribeToSpotQuotes ~ message:", message)
+  //     // Create a ProtoMessage wrapping the heartbeat
+  //     const message = ProtoMessage.create({
+  //       payloadType: ProtoPayloadType.values.PROTO_SUBSCRIBE_SPOT_QUOTES_REQ,
+  //       payload: payloadBuffer,
+  //     });
+  //     // const message = SubscribeSpotQuotesReq.create({
+  //     //   payloadType: 601,
+  //     //   symbolId: 1,
+  //     //   subscribeToSpotTimestamp: true
+  //     // });
+  //     console.log("🚀 ~ BaseEvaluationService ~ subscribeToSpotQuotes ~ message:", message)
   
-      const messageBuffer = Buffer.from(ProtoMessage.encode(message).finish());
+  //     const messageBuffer = Buffer.from(ProtoMessage.encode(message).finish());
 
-      const fullMessage = this.prefixMessageWithLength(messageBuffer);
+  //     const fullMessage = this.prefixMessageWithLength(messageBuffer);
   
-      const writeResult = this.client.write(fullMessage);
-      console.log("Sent subscription request:", writeResult);
+  //     const writeResult = this.client.write(fullMessage);
+  //     console.log("Sent subscription request:", writeResult);
+  //     if(writeResult){
+  //       for (let i = 0; i < botInfo.data.symbols.length; i++) {
+  //         if (!botInfo.data.symbolsSubscribed.includes(botInfo.data.symbols[i])) {
+  //           botInfo.data.symbolsSubscribed.push(botInfo.data.symbols[i]);
+  //         }
+  //       }
+  //     }
   
-      // Await server response
-      return await new Promise((resolve, reject) => {
-        this.client.once('data', (data: Buffer) => {
-          console.log("🚀 ~ BaseEvaluationService ~ this.client.once ~ data:", data.toString())
-          try {
-            // Extract length-prefixed message
-            const responseLength = data.readUInt32BE(0);
-            console.log("🚀 ~ BaseEvaluationService ~ this.client.once ~ responseLength:", responseLength)
-            const responseBuffer = data.slice(4, 4 + responseLength);
+  //     // Await server response
+  //     return await new Promise((resolve, reject) => {
+  //       this.client.once('data', (data: Buffer) => {
+  //         console.log("🚀 ~ BaseEvaluationService ~ this.client.once ~ data:", data.toString())
+  //         try {
+  //           // Extract length-prefixed message
+  //           const responseLength = data.readUInt32BE(0);
+  //           console.log("🚀 ~ BaseEvaluationService ~ this.client.once ~ responseLength:", responseLength)
+  //           const responseBuffer = data.slice(4, 4 + responseLength);
             
-            // Decode using expected response message type
-            const SubscribeSpotQuotesRes = this.root.lookupType('ProtoSubscribeSpotQuotesRes');
-            //const message = SubscribeSpotQuotesRes.create(payload);
+  //           // Decode using expected response message type
+  //           const SubscribeSpotQuotesRes = this.root.lookupType('ProtoSubscribeSpotQuotesRes');
+  //           //const message = SubscribeSpotQuotesRes.create(payload);
 
-            //const responseMessage = SubscribeSpotQuotesRes.decode(responseBuffer);
-            const err = SubscribeSpotQuotesRes.verify(responseBuffer);
-            console.log("🚀 ~ BaseEvaluationService ~ this.client.once ~ err:", err)
-            if (err) {
-              console.log(err)
-                throw err;
-            }
-            const message = SubscribeSpotQuotesRes.decode(messageBuffer);
-            console.log("🚀 ~ BaseEvaluationService ~ this.client.once ~ message:", message)
-            //return SubscribeSpotQuotesRes.toObject(message);
-            //Check for successful subscription response
-            if (message) {
-              console.log("Subscription confirmed:", message);
-              resolve({ message: "Subscription successful" });
-            } else {
-              reject(new Error('Unexpected response type'));
-            }
-          } catch (error) {
-            console.error("Decoding error:", error.message);
-            reject(new Error("Error decoding server response: " + error.message));
-          }
-        });
+  //           //const responseMessage = SubscribeSpotQuotesRes.decode(responseBuffer);
+  //           const err = SubscribeSpotQuotesRes.verify(responseBuffer);
+  //           console.log("🚀 ~ BaseEvaluationService ~ this.client.once ~ err:", err)
+  //           if (err) {
+  //             console.log(err)
+  //               throw err;
+  //           }
+  //           const message = SubscribeSpotQuotesRes.decode(messageBuffer);
+  //           console.log("🚀 ~ BaseEvaluationService ~ this.client.once ~ message:", message)
+  //           //return SubscribeSpotQuotesRes.toObject(message);
+  //           //Check for successful subscription response
+  //           if (message) {
+  //             console.log("Subscription confirmed:", message);
+  //             resolve({ message: "Subscription successful" });
+  //           } else {
+  //             reject(new Error('Unexpected response type'));
+  //           }
+  //         } catch (error) {
+  //           console.error("Decoding error:", error.message);
+  //           reject(new Error("Error decoding server response: " + error.message));
+  //         }
+  //       });
   
-        // Timeout to avoid hanging indefinitely
-        setTimeout(() => {
-          reject(new Error('Subscription request timed out'));
-        }, 5000);
-      });
-    } catch (error) {
-      console.error('Subscription request failed:', error.message);
-      return { message: "Subscription request failed", error: error.message };
-    }
-  }
+  //       // Timeout to avoid hanging indefinitely
+  //       setTimeout(() => {
+  //         reject(new Error('Subscription request timed out'));
+  //       }, 5000);
+  //     });
+  //   } catch (error) {
+  //     console.error('Subscription request failed:', error.message);
+  //     return { message: "Subscription request failed", error: error.message };
+  //   }
+  // }
 //   subscribe(req: ProtoSubscribeSpotQuotesReq): ProtoSubscribeSpotQuotesRes {
 //     req.symbolId.forEach(id => this.subscriptions.add(id));
 //     console.log(`Subscribed to symbols: ${Array.from(this.subscriptions)}`);
     
 //     return { payloadType: ProtoCSPayloadType.PROTO_SUBSCRIBE_SPOT_QUOTES_RES };
 // }
+async subscribeToSpotQuotes(botInfo: Job) {
+  try {
+    if (!this.root) throw new Error('Protobuf root not loaded');
+    
+    // Find unsubscribed symbols
+    const unsubscribedSymbols = botInfo.data.symbols.filter(
+      (symbol) => !botInfo.data.symbolsSubscribed.includes(symbol)
+    );
+
+    if (unsubscribedSymbols.length === 0) {
+      console.log("All symbols are already subscribed.");
+      return { message: "All symbols are already subscribed" };
+    }
+
+    // Get symbol IDs for unsubscribed symbols
+    const symbolIds = await this.symbolList(unsubscribedSymbols);
+
+    // Lookup and create a SubscribeSpotQuotesReq message
+    const SubscribeSpotQuotesReq = this.root.lookupType('ProtoSubscribeSpotQuotesReq');
+    const ProtoPayloadType = this.root.lookupEnum("ProtoCSPayloadType");
+    const ProtoMessage = this.root2.lookupType("ProtoMessage");
+
+    const authPayload = SubscribeSpotQuotesReq.create({
+      symbolId: symbolIds,
+      subscribeToSpotTimestamp: true
+    });
+    const payloadBuffer = SubscribeSpotQuotesReq.encode(authPayload).finish();
+
+    // Create a ProtoMessage wrapping the subscription request
+    const message = ProtoMessage.create({
+      payloadType: ProtoPayloadType.values.PROTO_SUBSCRIBE_SPOT_QUOTES_REQ,
+      payload: payloadBuffer,
+    });
+
+    const messageBuffer = Buffer.from(ProtoMessage.encode(message).finish());
+    const fullMessage = this.prefixMessageWithLength(messageBuffer);
+
+    // Send subscription request
+    const writeResult = this.client.write(fullMessage);
+    console.log("Sent subscription request:", writeResult);
+
+    if (writeResult) {
+      // Update symbolsSubscribed with the new subscribed symbols
+      botInfo.data.symbolsSubscribed.push(...unsubscribedSymbols);
+    }
+
+    // Await server response
+    return await new Promise((resolve, reject) => {
+      this.client.once('data', (data: Buffer) => {
+        try {
+          const responseLength = data.readUInt32BE(0);
+          const responseBuffer = data.slice(4, 4 + responseLength);
+
+          // Decode the response
+          const SubscribeSpotQuotesRes = this.root.lookupType('ProtoSubscribeSpotQuotesRes');
+          const err = SubscribeSpotQuotesRes.verify(responseBuffer);
+          if (err) throw err;
+
+          const responseMessage = SubscribeSpotQuotesRes.decode(responseBuffer);
+          console.log("Subscription confirmed:", responseMessage);
+
+          if (responseMessage) {
+            resolve({ message: "Subscription successful" });
+          } else {
+            reject(new Error('Unexpected response type'));
+          }
+        } catch (error) {
+          console.error("Decoding error:", error.message);
+          reject(new Error("Error decoding server response: " + error.message));
+        }
+      });
+
+      setTimeout(() => {
+        reject(new Error('Subscription request timed out'));
+      }, 5000);
+    });
+  } catch (error) {
+    console.error('Subscription request failed:', error.message);
+    return { message: "Subscription request failed", error: error.message };
+  }
+}
+
   async unsubscribeFromSpotQuotes(subscriptionId: string) {
     try {
       const UnsubscribeSpotQuotesReq = this.root.lookupType('ProtoUnsubscribeSpotQuotesReq');
@@ -201,13 +289,13 @@ private handleEventData(data: Buffer) {
   while (true) {
     // Check if we have enough data for the message length prefix
     if (this.messageBuffer.length < 4) {
-      console.log("Insufficient data for length prefix, waiting for more data.");
+      //console.log("Insufficient data for length prefix, waiting for more data.");
       return;
     }
 
     // Read the length prefix
     const length = this.messageBuffer.readUInt32BE(0);
-    console.log("Message length prefix:", length);
+    //console.log("Message length prefix:", length);
 
     // Verify if we have the full message based on the length prefix
     if (this.messageBuffer.length < 4 + length) {
@@ -228,7 +316,7 @@ private handleEventData(data: Buffer) {
       const decodedEvent = ProtoSpotEvent.decode(eventDataBuffer);
       console.log("Decoded ProtoSpotEvent:", decodedEvent);
       // Process the decoded spot data
-      this.processSpotData(decodedEvent);
+      //this.processSpotData(decodedEvent);
     } catch (error) {
       console.error("Error decoding ProtoSpotEvent:", error.message);
     }
@@ -236,9 +324,12 @@ private handleEventData(data: Buffer) {
 }
   // Process received spot data (e.g., store/display prices)
   private processSpotData(data: any) {
+    console.log("🚀 ~ BaseEvaluationService ~ processSpotData ~ data:", data)
     // Assuming the data contains symbol and price
-    const { symbol, price, timestamp } = data;
-    console.log(`Symbol: ${symbol} | Price: ${price} | Timestamp: ${timestamp}`);
+    const symbol = data.ProtoSpotEvent.symbolId.Long.low;
+    const ask = data.ProtoSpotEvent.ask.Long.low;
+    const bid = data.ProtoSpotEvent.bid.Long.low;
+    console.log(`Symbol: ${symbol} | Ask: ${ask} | Bid: ${bid}`);
     // Here, you can store the data in a database or cache as needed
   }
   async authManager(){
@@ -271,7 +362,7 @@ private handleEventData(data: Buffer) {
       //   login: 30017,
       //   passwordHash: "68bf947cb75f1d31eea2e83afd062a06"
       // });
-      console.log("🚀 ~ BaseEvaluationService ~ authManager ~ message:", message)
+      //console.log("🚀 ~ BaseEvaluationService ~ authManager ~ message:", message)
   
       const messageBuffer = Buffer.from(ProtoMessage.encode(message).finish());
       const fullMessage = this.prefixMessageWithLength(messageBuffer);
@@ -281,7 +372,6 @@ private handleEventData(data: Buffer) {
   
       return await new Promise((resolve, reject) => {
         this.client.once('data', (data: Buffer) => {
-          console.log("🚀 ~ BaseEvaluationService ~ this.client.once ~ data:", data.toString())
           try {
             const responseLength = data.readUInt32BE(0);
             const responseBuffer = data.slice(4, 4 + responseLength);
@@ -291,7 +381,7 @@ private handleEventData(data: Buffer) {
             if (err) throw new Error(err);
   
             const authResponse = ManagerAuthRes.decode(responseBuffer);
-            console.log("Authorization response:", authResponse);
+            //console.log("Authorization response:", authResponse);
   
             if (authResponse) {
               resolve({ message: "Authorization successful", permissions: authResponse });
@@ -374,12 +464,24 @@ private handleEventData(data: Buffer) {
 
     }
   }
-  async symbolList (){
+  async symbolList (symbols){
+    let symbolID = [];
     try{
-
+      const symbolURL = process.env.symbolURL;
+      const response = await axios.get(`${symbolURL}${process.env.token}`);
+      response.data.symbol.forEach(totalsymbol => {
+        symbols.forEach(symbolList => {
+          if(totalsymbol.name == symbolList){
+            symbolID.push(totalsymbol.id);
+          }
+        });
+        
+      });
+      console.log("🚀 ~ BaseEvaluationService ~ symbolList ~ symbolID:", symbolID)
+      return symbolID;
     }
     catch(error){
-    console.log("🚀 ~ BaseEvaluationService ~ symbolList ~ error:", error)
+    console.log("🚀 ~ BaseEvaluationService ~ symbolList ~ error:", error.response.data)
 
     }
   }

@@ -6,6 +6,8 @@ import * as net from 'net';
 export interface IEvaluationInterface{
     // subscribeToSpotQuotes(payload);
     // unsubscribeFromSpotQuotes(subscriptionId);
+    subscribeToSpotQuotes(botInfo)
     rulesEvaluation(body);
     dailyKOD(req)
+    symbolList (symbols)
 }
