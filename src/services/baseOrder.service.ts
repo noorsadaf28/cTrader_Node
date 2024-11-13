@@ -20,12 +20,18 @@ export class BaseOrderService implements IOrderInterface {
   }
 
   // Polling logic with login parameter
-  @Cron(CronExpression.EVERY_5_MINUTES)
   async pollPositions(botInfo:Job) {
     const login = botInfo.data.traderLogin;  // replace this with the desired login value or fetch dynamically if needed
     this.logger.log(`Polling for open and closed positions for login: ${login}...`);
     try {
       const openPositions = await this.fetchOpenPositions(login);
+      //console.log("🚀 ~ BaseOrderService ~ pollPositions ~ openPositions:", openPositions);
+      for (let i = 0; i < openPositions.length; i++) {
+        if (!botInfo.data.symbols.includes(openPositions[i].symbol)) {
+          botInfo.data.symbols.push(openPositions[i].symbol);
+        }
+      }
+      //console.log("🚀 ~ BaseOrderService ~ pollPositions ~ botInfo:", botInfo.data)
       const closedPositions = await this.fetchClosedPositions(login);
       await this.updateXanoWithPositions(openPositions, closedPositions);
     } catch (error) {

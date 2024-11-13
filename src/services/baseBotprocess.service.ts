@@ -8,11 +8,12 @@ import { IAccountInterface } from "./Interfaces/IAccount.interface";
 import { IBotInterface } from "./Interfaces/IBot.interface";
 import { format } from 'date-fns';
 import { IEvaluationInterface } from "./Interfaces/IEvaluation.interface";
+import { IOrderInterface } from "./Interfaces/IOrder.interface";
 
 @Processor(activeBotQueue)
 export abstract class BaseBotProcess implements IBotProcessInterface{
     public startTime;
-    constructor(@Inject('IAccountInterface') public readonly IAccountInterface: IAccountInterface, @Inject('IBotInterface') public readonly IBotInterface: IBotInterface, @Inject('IEvaluationInterface') public readonly IEvaluationInterface: IEvaluationInterface){
+    constructor(@Inject('IAccountInterface') public readonly IAccountInterface: IAccountInterface, @Inject('IBotInterface') public readonly IBotInterface: IBotInterface, @Inject('IEvaluationInterface') public readonly IEvaluationInterface: IEvaluationInterface, @Inject('IOrderInterface') public readonly IOrderInterface: IOrderInterface){
         
     }
 

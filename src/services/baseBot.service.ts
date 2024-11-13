@@ -23,6 +23,10 @@ async RunBot(botInfo){
         botInfo.traderLogin = accountResponse.traderLogin;
         botInfo.ctid = accountResponse.ctid;
         botInfo.ctidTraderAccountId = accountResponse.ctidTraderAccountId;
+        botInfo.running = true;
+        botInfo.interval = 10;
+        botInfo.symbols = [];
+        botInfo.symbolsSubscribed = [];
         const bot_queue = await this.bot_queue.add('start-challenge', botInfo)
         const newBot = {
             email: botInfo.email,
@@ -117,7 +121,7 @@ async stopAllBots() {
       if (jobs.length > 0) {
         for (const job of jobs) 
         {
-          console.log("🚀 ActiveBotIds ~ job:", job)
+          //console.log("🚀 ActiveBotIds ~ job:", job)
          active_Bots.push(job.id)
         }
         console.log("🚀 ~ ~ active_Bots:", active_Bots)

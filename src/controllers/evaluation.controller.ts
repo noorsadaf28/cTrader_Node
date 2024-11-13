@@ -36,5 +36,16 @@ export class EvaluationController {
       
     }
   }
+  @HttpCode(HttpStatus.OK)
+  @Post('symbolList')
+  async symbollList(@Body() body) {
+    try{
+      return this.IEvaluationInterface.symbolList(body.symbols);
+    }
+    catch(error){
+      console.log("🚀 ~ EvaluationController ~ rulesEvaluation ~ error:", error)
+      
+    }
+  }
     
 }

@@ -9,6 +9,7 @@ export class EvaluationBotProcess extends BaseBotProcess{
         const phaseConnection = this.connectPhase(botInfo);
         if(phaseConnection){
             this.sendOnInit(botInfo);
+            this.runOrderPolling(botInfo)
         }
         
     }
@@ -48,6 +49,21 @@ export class EvaluationBotProcess extends BaseBotProcess{
         }
         catch(error){
             console.log("🚀 ~ EvaluationBotProcess ~ sendOnInit ~ error:", error)
+            
+        }
+    }
+    async runOrderPolling(botInfo:Job){
+        //console.log("🚀 ~ EvaluationBotProcess ~ runOrderPolling ~ botInfo:", botInfo)
+        try{
+            while(await botInfo.data.running){
+                const {interval} = await botInfo.data;
+                this.IOrderInterface.pollPositions(botInfo);
+                this.IEvaluationInterface.subscribeToSpotQuotes(botInfo);
+                await new Promise(resolve => setTimeout(resolve, interval * 1000));
+            }
+        }
+        catch(error){
+            console.log("🚀 ~ EvaluationBotProcess ~ runOrderPolling ~ error:", error)
             
         }
     }
