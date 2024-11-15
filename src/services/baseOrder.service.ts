@@ -33,6 +33,7 @@ export class BaseOrderService implements IOrderInterface {
       }
       //console.log("🚀 ~ BaseOrderService ~ pollPositions ~ botInfo:", botInfo.data)
       const closedPositions = await this.fetchClosedPositions(login);
+      
       await this.updateXanoWithPositions(openPositions, closedPositions);
     } catch (error) {
       this.logger.error(`Error during polling: ${error.message}`);
@@ -123,7 +124,6 @@ export class BaseOrderService implements IOrderInterface {
         };
       });
   }
-
   private async updateXanoWithPositions(openPositions: any[], closedPositions: any[]) {
     for (const pos of openPositions) {
       const openOrderData: CreateOrderDto = this.mapOpenPositionToOrderDto(pos);
