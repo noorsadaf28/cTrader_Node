@@ -8,7 +8,6 @@ async function bootstrap() {
   });
 
   await app.listen(3000);
-  app.setGlobalPrefix('ctrader');
   console.log(`------------------------------Exchange set to: ⚡${process.env.exchange}------------------------------`);
   console.log(`---------------------- Bot Type : ${process.env.botType} -------------------------------`)
 console.log(`------------📬 Queue : ${activeBotQueue} ----------`)

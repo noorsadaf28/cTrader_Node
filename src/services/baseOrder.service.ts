@@ -25,7 +25,7 @@ export class BaseOrderService implements IOrderInterface {
     this.logger.log(`Polling for open and closed positions for login: ${login}...`);
     try {
       const openPositions = await this.fetchOpenPositions(login);
-      //console.log("🚀 ~ BaseOrderService ~ pollPositions ~ openPositions:", openPositions);
+      console.log("🚀 ~ BaseOrderService ~ pollPositions ~ openPositions:", openPositions);
       for (let i = 0; i < openPositions.length; i++) {
         if (!botInfo.data.symbols.includes(openPositions[i].symbol)) {
           botInfo.data.symbols.push(openPositions[i].symbol);
@@ -34,6 +34,7 @@ export class BaseOrderService implements IOrderInterface {
       //console.log("🚀 ~ BaseOrderService ~ pollPositions ~ botInfo:", botInfo.data)
       const closedPositions = await this.fetchClosedPositions(login);
       await this.updateXanoWithPositions(openPositions, closedPositions);
+      return {"message":`Polling started for account ${login}`}
     } catch (error) {
       this.logger.error(`Error during polling: ${error.message}`);
     }

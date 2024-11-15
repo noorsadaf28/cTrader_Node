@@ -52,14 +52,13 @@ private client: tls.TLSSocket;
         rejectUnauthorized: false,
       });
       // Enable keep-alive to prevent idle timeout
-      this.client.setKeepAlive(true, 10000);
       this.client.on('connect', () => {
         console.log('SSL connection established');
         //this.createHeartbeatMessage()
         this.authManager()
         //this.subscribeToSpotQuotes()
       });
-      
+      this.client.setKeepAlive(true, 10000);
       this.client.on('data', (data: Buffer) => {
         this.handleEventData(data);
       });
