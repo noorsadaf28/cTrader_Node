@@ -13,7 +13,7 @@ export class OrderController {
   @Post('fetchOrders')
   @HttpCode(HttpStatus.OK)
   async fetchOpenPositions(@Body() body) {
-    await this.IOrderInterface.pollPositions(body);
+   return await this.IOrderInterface.pollPositions(body);
   }
   @Post('symbolInfo')
   async getSymbolInfo(){
