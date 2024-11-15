@@ -29,6 +29,7 @@ private client: tls.TLSSocket;
   private root2: protobuf.Root;
   private messageBuffer: Buffer = Buffer.alloc(0);
   private subscriptions: Set<number> = new Set(); // Store active subscriptions
+  private botInfo:Job;
 
   constructor(@Inject('IAccountInterface') private readonly IAccountInterface:IAccountInterface) {}
 
@@ -56,6 +57,7 @@ private client: tls.TLSSocket;
         console.log('SSL connection established');
         //this.createHeartbeatMessage()
         this.authManager()
+        this.sendHeartbeat()
         //this.subscribeToSpotQuotes()
       });
       this.client.setKeepAlive(true, 10000);
@@ -64,13 +66,16 @@ private client: tls.TLSSocket;
       });
       this.client.on('end', () => {
         console.log('Connection ended by server');
-        this.reconnect();
+        //this.reconnect();
       });
       
       // Listen for 'close' event, which happens when the connection fully closes
       this.client.on('close', (hadError) => {
         console.log(`Connection closed${hadError ? ' due to an error' : ''}`);
         console.log('Socket destroyed:', this.client.destroyed); // Will be true after the socket is fully closed
+      });
+      this.client.on('error', (err) => {
+        console.error('Connection error:', err.message);
       });
     } catch (error) {
       console.error('Error initializing connection:', error);
@@ -279,7 +284,7 @@ async subscribeToSpotQuotes(botInfo: Job) {
   }
   // Handle incoming data, process ProtoSpotEvent messages
 private handleEventData(data: Buffer) {
-  console.log("Data received in handleEventData");
+  console.log("Data received in handleEventData", data.toString());
 
   // Append new data to the existing buffer
   this.messageBuffer = Buffer.concat([this.messageBuffer, data]);
@@ -429,6 +434,28 @@ private handleEventData(data: Buffer) {
     // console.log("Sent authorization request:", writeResult);
     return messageBuffer;
   }
+  private sendHeartbeat() {
+    setInterval(() => {
+      const ProtoHeartbeatEvent =  this.root2.lookupType("ProtoHeartbeatEvent");
+    const ProtoMessage =  this.root2.lookupType("ProtoMessage");
+    const ProtoPayloadType =  this.root.lookupEnum("ProtoPayloadType");
+  
+      const heartbeatPayload = ProtoHeartbeatEvent.create();
+      const payloadBuffer = ProtoHeartbeatEvent.encode(heartbeatPayload).finish();
+  
+      const message = ProtoMessage.create({
+        payloadType: ProtoPayloadType.values.HEARTBEAT_EVENT,
+        payload: payloadBuffer,
+      });
+  
+      const messageBuffer = Buffer.from(ProtoMessage.encode(message).finish());
+      const fullMessage = this.prefixMessageWithLength(messageBuffer);
+  
+      this.client.write(fullMessage);
+      console.log('Sent heartbeat message');
+    }, 30000); // Send heartbeat every 30 seconds
+  }
+  
   async rulesEvaluation(botInfo:Job){
     try{
       const accountdata = await this.IAccountInterface.AccountDetails(botInfo.data);
