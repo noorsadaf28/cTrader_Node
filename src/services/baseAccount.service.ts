@@ -21,6 +21,7 @@ export abstract class BaseAccountService implements IAccountInterface {
   async createAccountWithCTID(req) {
     try {
       const xanoApiUrl = process.env.XANO_API_URL_1;
+      const MakeUrl = process.env.MAKEENDPOINT_URL;
       const ctidResponse = await this.createCTID(req.email, req.preferredLanguage);
       const userId = parseInt(ctidResponse.userId);
       console.log("🚀 ~ BaseAccountService ~ userId:", userId);
@@ -52,14 +53,18 @@ export abstract class BaseAccountService implements IAccountInterface {
       );
 
       const dataJson = {
-        uuid: generatedUuid, // Use the generated UUID here
+        uuid: generatedUuid,
         accounts: [{
           id: traderLogin,
           status: process.env.active,
           currency: req.Currency,
           initial_balance: req.Initial_balance,
           final_balance: req.Initial_balance
-        }]
+        }],
+        // Additional fields for Make endpoint
+        Account: traderLogin.toString(), // Convert to string as it was hardcoded in the example
+        Platform: "CTrader",
+        ChallengeID: req.ChallengeID || "1292" // Use the ChallengeID from the request if available, otherwise use a default
       };
       
       // Enhanced console log to display data types and values for each property in accounts
@@ -74,6 +79,8 @@ export abstract class BaseAccountService implements IAccountInterface {
 
 
       const response = await axios.post(xanoApiUrl, dataJson);
+      const response1 = await axios.post(MakeUrl, dataJson);
+      console.log('Account created in Make:', response1.data);
       console.log('Account created in Xano:', response.data);
 
       return {
