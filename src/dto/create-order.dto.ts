@@ -57,4 +57,12 @@ export class CreateOrderDto {
   @IsString()
   @IsOptional()
   close_date?: string;
+
+  @IsString()
+  @IsOptional()
+  take_profit?: string;
+
+  @IsString()
+  @IsOptional()
+  stop_loss?: string;
 }

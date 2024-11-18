@@ -16,7 +16,6 @@ export class DailyEquityService {
   private readonly apiToken: string;
   private readonly xanoEquityUrl: string;
   private readonly logger = new Logger(DailyEquityService.name);
-  private lastFetchedData: any[] = [];
 
   constructor(private readonly httpService: HttpService) {
     this.spotwareApiUrl = process.env.SPOTWARE_API_URL;
@@ -40,15 +39,111 @@ export class DailyEquityService {
     }
   }
 
+  // Fetch open positions for a specific day for a given account
+  async fetchOpenPositionsForDay(account: number): Promise<any[]> {
+    this.logger.log(`Fetching open positions for account ${account}`);
+    try {
+      const response: AxiosResponse = await this.httpService.get(`${this.spotwareApiUrl}/v2/webserv/openPositions`, {
+        params: { login: account, token: this.apiToken },
+        headers: { 'Content-Type': 'application/json' },
+      }).toPromise();
+
+      this.logger.log(`Fetched open positions for account ${account}`);
+      return response.data.split('\n').slice(1).map(row => {
+        const columns = row.split(',');
+        return {
+          login: columns[0],
+          openTimestamp: columns[2], // Position's open timestamp
+        };
+      });
+    } catch (error) {
+      this.logger.error(`Failed to fetch open positions for account ${account}: ${error.message}`);
+      return [];
+    }
+  }
+
+  // Create or update records in Xano for daily equity data
+  async createDailyEquityInXano(equityData: any[]) {
+    this.logger.log('Starting process to create or update daily equity records in Xano');
+    this.logger.debug(`Received equityData: ${JSON.stringify(equityData)}`);
+    
+    const results = [];
+  
+    if (!equityData || equityData.length === 0) {
+      this.logger.warn('No equity data to process. Exiting function.');
+      return results; // Return early if there is no data
+    }
+  
+    for (const data of equityData) {
+      try {
+        // Fetch open positions for the current account
+        const openPositions = await this.fetchOpenPositionsForDay(data.account);
+        const hasOrderToday = openPositions.some(pos => dayjs(pos.openTimestamp).isSame(data.sde_date, 'day'));
+
+        // Fetch existing data for the current account from Xano
+        const prevDataResponse = await this.httpService.get(`${this.xanoEquityUrl}?account=${data.account}`, {
+          headers: { 'Content-Type': 'application/json' },
+        }).toPromise();
+
+        const prevData = prevDataResponse.data;
+
+        if (prevData && prevData.length > 0) {
+          // Existing data found, update `trading_days` if order found today
+          if (hasOrderToday) {
+            data.trading_days = (parseInt(prevData[0].trading_days) + 1).toString();
+            this.logger.log(`Incremented trading days for account ${data.account} to ${data.trading_days}`);
+          } else {
+            data.trading_days = prevData[0].trading_days;
+            this.logger.log(`No new orders today for account ${data.account}. Trading days remain ${data.trading_days}`);
+          }
+        } else {
+          // No existing data found; set initial `trading_days`
+          data.trading_days = hasOrderToday ? '1' : '0';
+          this.logger.log(`No existing data found for account ${data.account}. Setting trading days to ${data.trading_days}`);
+        }
+
+        this.logger.debug(`Creating or updating record for account: ${data.account}`);
+        const createResponse = await this.httpService.post(this.xanoEquityUrl, data, {
+          headers: { 'Content-Type': 'application/json' },
+        }).toPromise();
+
+        this.logger.debug(`Create response for account ${data.account}: ${JSON.stringify(createResponse.data)}`);
+        results.push(createResponse.data);
+      } catch (error) {
+        this.logger.error(`Failed to create or update record for account ${data.account}: ${error.message}`);
+        throw new HttpException(`Failed to create or update record for account ${data.account}: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+      }
+    }
+
+    this.logger.log('Completed creation or update of daily equity records in Xano');
+    return results;
+  }
+
+  // Update the equity for traders daily
+  async updateDailyEquityForTraders() {
+    const fromDate = dayjs().subtract(1, 'day').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS');
+    const toDate = dayjs().startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS');
+
+    this.logger.log(`Starting daily equity update for traders from ${fromDate} to ${toDate}`);
+
+    try {
+      const equityData = await this.fetchDailyEquityData(fromDate, toDate);
+      const result = await this.createDailyEquityInXano(equityData);
+      return result;
+    } catch (error) {
+      this.logger.error(`Failed to update daily equity for traders: ${error.message}`);
+      throw new HttpException(`Failed to update daily equity for traders: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
   // Fetch daily equity data from external service
   async fetchDailyEquityData(fromDate: string, toDate: string) {
     this.logger.log(`Fetching daily equity data from Spotware for date range ${fromDate} to ${toDate}`);
-
     try {
       const response: AxiosResponse = await this.httpService
         .get(`${this.spotwareApiUrl}/v2/webserv/traders/`, {
           params: {
-            from: dayjs('2024-09-01').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS'),
+            from: fromDate,
             to: toDate,
             fields: 'login,balance,minEquityDaily,maxEquityDaily',
             token: this.apiToken,
@@ -59,11 +154,7 @@ export class DailyEquityService {
       if (response.status !== 200) {
         throw new Error(`Unexpected status code: ${response.status}`);
       }
-      console.log('API Response:', JSON.stringify(response.data, null, 2));
 
-      // If you want to log specific parts of the response, you can do:
-      console.log('Traders:', response.data.trader);
-      console.log('First trader:', response.data.trader[0]);
       const mappedData = response.data.trader.map((trader) => ({
         account: trader.login,
         starting_daily_equity: trader.balance.toString(), // Convert balance to string as required by Xano
@@ -83,82 +174,10 @@ export class DailyEquityService {
       throw new HttpException(`Failed to fetch daily equity data: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
-
-  // Always create new records in Xano for daily equity data
-  async createDailyEquityInXano(equityData: any[]) {
-    this.logger.log('Starting process to create new daily equity records in Xano');
-    this.logger.debug(`Received equityData: ${JSON.stringify(equityData)}`);
-    
-    const results = [];
-  
-    if (!equityData || equityData.length === 0) {
-      this.logger.warn('No equity data to process. Exiting function.');
-      return results; // Return early if there is no data
-    }
-  
-    for (const data of equityData) {
-      try {
-        // Fetch the previous day's data for the current account from Xano
-        const prevDate = dayjs(data.sde_date).subtract(1, 'day').format('YYYY-MM-DD');
-        const prevDataResponse = await this.httpService
-          .get(`${this.xanoEquityUrl}?account=${data.account}&sde_date=${prevDate}`, {
-            headers: { 'Content-Type': 'application/json' },
-          })
-          .toPromise();
-  
-        const prevData = prevDataResponse.data;
-  
-        // Check if the balance has changed compared to the previous day
-        if (prevData && prevData.length > 0) {
-          const prevBalance = parseFloat(prevData[0].starting_daily_equity);
-          const currentBalance = parseFloat(data.starting_daily_equity);
-  
-          if (currentBalance !== prevBalance) {
-            data.trading_days = (parseInt(prevData[0].trading_days) + 1).toString(); // Increment trading days
-          } else {
-            data.trading_days = prevData[0].trading_days; // Keep trading days unchanged
-          }
-        } else {
-          data.trading_days = '1'; // First trading day if no previous data is found
-        }
-  
-        this.logger.debug(`Creating new record for account: ${data.account}`);
-        const createResponse = await this.httpService
-          .post(this.xanoEquityUrl, data, {
-            headers: { 'Content-Type': 'application/json' },
-          })
-          .toPromise();
-  
-        this.logger.debug(`Create response for account ${data.account}: ${JSON.stringify(createResponse.data)}`);
-        results.push(createResponse.data);
-      } catch (error) {
-        this.logger.error(`Failed to create record for account ${data.account}: ${error.message}`);
-        throw new HttpException(`Failed to create record for account ${data.account}: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
-      }
-    }
-  
-    this.logger.log('Completed creation of new daily equity records in Xano');
-    return results;
-  }
-  
-
-  // Update the equity for traders daily
-  async updateDailyEquityForTraders() {
-  const fromDate = dayjs('2024-09-01').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS');
-    const toDate = dayjs().startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS');
-
-    this.logger.log(`Starting daily equity update for traders from ${fromDate} to ${toDate}`);
-
-    try {
-      const equityData = await this.fetchDailyEquityData(fromDate, toDate);
-      const result = await this.createDailyEquityInXano(equityData);
-      return result;
-    } catch (error) {
-      this.logger.error(`Failed to update daily equity for traders: ${error.message}`);
-      throw new HttpException(`Failed to update daily equity for traders: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
-    }
-  }
 }
+
+
+
 
 
 
