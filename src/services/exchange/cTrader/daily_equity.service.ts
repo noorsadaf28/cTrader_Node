@@ -6,6 +6,8 @@ import * as https from 'https';
 import { Cron } from '@nestjs/schedule';
 import * as utc from 'dayjs/plugin/utc';
 import * as timezone from 'dayjs/plugin/timezone';
+import { IOrderPollingService } from 'src/services/Interfaces/IOrderPollingService';
+import { Job } from 'bull';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -17,8 +19,9 @@ export class DailyEquityService {
   private readonly xanoEquityUrl: string;
   private readonly logger = new Logger(DailyEquityService.name);
   private lastFetchedData: any[] = [];
+  private botInfo:Job;
 
-  constructor(private readonly httpService: HttpService) {
+  constructor(private readonly httpService: HttpService, private readonly IOrderPollingService : IOrderPollingService) {
     this.spotwareApiUrl = process.env.SPOTWARE_API_URL;
     this.apiToken = process.env.SPOTWARE_API_TOKEN;
     this.xanoEquityUrl = process.env.XANO_API_EQUITYURL;
@@ -41,48 +44,101 @@ export class DailyEquityService {
   }
 
   // Fetch daily equity data from external service
+  // async fetchDailyEquityData(fromDate: string, toDate: string) {
+  //   this.logger.log(`Fetching daily equity data from Spotware for date range ${fromDate} to ${toDate}`);
+
+  //   try {
+  //     const response: AxiosResponse = await this.httpService
+  //       .get(`${this.spotwareApiUrl}/v2/webserv/traders/`, {
+  //         params: {
+  //           from: dayjs('2024-09-01').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS'),
+  //           to: toDate,
+  //           fields: 'login,balance,minEquityDaily,maxEquityDaily',
+  //           token: this.apiToken,
+  //         },
+  //       })
+  //       .toPromise();
+
+  //     if (response.status !== 200) {
+  //       throw new Error(`Unexpected status code: ${response.status}`);
+  //     }
+  //     console.log('API Response:', JSON.stringify(response.data, null, 2));
+  //     let openPositionData;
+  //     // If you want to log specific parts of the response, you can do:
+  //     console.log('Traders:', response.data.trader);
+  //     console.log('First trader:', response.data.trader[0]);
+  //     const mappedData = response.data.trader.map((trader) => ({
+  //       openPositionData = this.IOrderPollingService.fetchOpenPositions(trader.login, this.botInfo)
+  //       account: trader.login,
+  //       starting_daily_equity: trader.balance.toString(), // Convert balance to string as required by Xano
+  //       sde_date: dayjs().format('YYYY-MM-DD'),
+  //       gmt_date: dayjs().toISOString(),
+  //       created_at: dayjs().toISOString(),
+  //       status: 'pending',
+  //       trading_days: openPositionData.tradingDays,
+  //       challenge_begins: dayjs().subtract(30, 'days').format('YYYY-MM-DD'),
+  //       new_status: 'pending',
+  //     }));
+      
+  //     this.logger.log('Successfully fetched and mapped daily equity data');
+  //     return mappedData;
+  //   } catch (error) {
+  //     this.logger.error(`Error fetching daily equity data: ${error.message}`);
+  //     throw new HttpException(`Failed to fetch daily equity data: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+  //   }
+  // }
   async fetchDailyEquityData(fromDate: string, toDate: string) {
-    this.logger.log(`Fetching daily equity data from Spotware for date range ${fromDate} to ${toDate}`);
+    this.logger.log(`Fetching daily equity data from Spotware for date range: ${fromDate} to ${toDate}`);
 
     try {
-      const response: AxiosResponse = await this.httpService
-        .get(`${this.spotwareApiUrl}/v2/webserv/traders/`, {
-          params: {
-            from: dayjs('2024-09-01').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS'),
-            to: toDate,
-            fields: 'login,balance,minEquityDaily,maxEquityDaily',
-            token: this.apiToken,
-          },
-        })
-        .toPromise();
+        const response: AxiosResponse = await this.httpService
+            .get(`${this.spotwareApiUrl}/v2/webserv/traders/`, {
+                params: {
+                    from: dayjs('2024-09-01').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS'),
+                    to: toDate,
+                    fields: 'login,balance,minEquityDaily,maxEquityDaily',
+                    token: this.apiToken,
+                },
+            })
+            .toPromise();
 
-      if (response.status !== 200) {
-        throw new Error(`Unexpected status code: ${response.status}`);
-      }
-      console.log('API Response:', JSON.stringify(response.data, null, 2));
+        if (response.status !== 200) {
+            throw new Error(`Unexpected status code: ${response.status}`);
+        }
 
-      // If you want to log specific parts of the response, you can do:
-      console.log('Traders:', response.data.trader);
-      console.log('First trader:', response.data.trader[0]);
-      const mappedData = response.data.trader.map((trader) => ({
-        account: trader.login,
-        starting_daily_equity: trader.balance.toString(), // Convert balance to string as required by Xano
-        sde_date: dayjs().format('YYYY-MM-DD'),
-        gmt_date: dayjs().toISOString(),
-        created_at: dayjs().toISOString(),
-        status: 'pending',
-        trading_days: '0',
-        challenge_begins: dayjs().subtract(30, 'days').format('YYYY-MM-DD'),
-        new_status: 'pending',
-      }));
+        console.log('API Response:', JSON.stringify(response.data, null, 2));
+        console.log('Traders:', response.data.trader);
+        console.log('First trader:', response.data.trader[0]);
 
-      this.logger.log('Successfully fetched and mapped daily equity data');
-      return mappedData;
+        const mappedData = await Promise.all(
+            response.data.trader.map(async (trader) => {
+                const openPositionData = await this.IOrderPollingService.fetchOpenPositions(trader.login, this.botInfo);
+
+                return {
+                    account: trader.login,
+                    starting_daily_equity: trader.balance.toString(), // Convert balance to string as required by Xano
+                    sde_date: dayjs().format('YYYY-MM-DD'),
+                    gmt_date: dayjs().toISOString(),
+                    created_at: dayjs().toISOString(),
+                    status: 'pending',
+                    trading_days: openPositionData.tradingDays || 0,
+                    challenge_begins: dayjs().subtract(30, 'days').format('YYYY-MM-DD'),
+                    new_status: 'pending',
+                };
+            })
+        );
+
+        this.logger.log('Successfully fetched and mapped daily equity data');
+        return mappedData;
     } catch (error) {
-      this.logger.error(`Error fetching daily equity data: ${error.message}`);
-      throw new HttpException(`Failed to fetch daily equity data: ${error.message}`, HttpStatus.INTERNAL_SERVER_ERROR);
+        this.logger.error(`Error fetching daily equity data: ${error.message}`);
+        throw new HttpException(
+            `Failed to fetch daily equity data: ${error.message}`,
+            HttpStatus.INTERNAL_SERVER_ERROR
+        );
     }
-  }
+}
+
 
   // Always create new records in Xano for daily equity data
   async createDailyEquityInXano(equityData: any[]) {
@@ -108,19 +164,19 @@ export class DailyEquityService {
   
         const prevData = prevDataResponse.data;
   
-        // Check if the balance has changed compared to the previous day
-        if (prevData && prevData.length > 0) {
-          const prevBalance = parseFloat(prevData[0].starting_daily_equity);
-          const currentBalance = parseFloat(data.starting_daily_equity);
+        // // Check if the balance has changed compared to the previous day
+        // if (prevData && prevData.length > 0) {
+        //   const prevBalance = parseFloat(prevData[0].starting_daily_equity);
+        //   const currentBalance = parseFloat(data.starting_daily_equity);
   
-          if (currentBalance !== prevBalance) {
-            data.trading_days = (parseInt(prevData[0].trading_days) + 1).toString(); // Increment trading days
-          } else {
-            data.trading_days = prevData[0].trading_days; // Keep trading days unchanged
-          }
-        } else {
-          data.trading_days = '1'; // First trading day if no previous data is found
-        }
+        //   if (currentBalance !== prevBalance) {
+        //     data.trading_days = (parseInt(prevData[0].trading_days) + 1).toString(); // Increment trading days
+        //   } else {
+        //     data.trading_days = prevData[0].trading_days; // Keep trading days unchanged
+        //   }
+        // } else {
+        //   data.trading_days = '1'; // First trading day if no previous data is found
+        // }
   
         this.logger.debug(`Creating new record for account: ${data.account}`);
         const createResponse = await this.httpService

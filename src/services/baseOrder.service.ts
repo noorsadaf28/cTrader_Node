@@ -5,49 +5,97 @@ import axios from 'axios';
 import { CreateOrderDto } from 'src/dto/create-order.dto';
 import { IOrderInterface } from './Interfaces/IOrder.interface';
 import {Job} from 'bull';
+import { tmpdir } from 'os';
+import { HttpService } from '@nestjs/axios';
 
 @Injectable()
 export class BaseOrderService implements IOrderInterface {
   private readonly xanoApiUrl: string;
   private readonly spotwareApiUrl: string;
   private readonly apiToken: string;
+  private readonly xanoEquityUrl: string;
   private readonly logger = new Logger(BaseOrderService.name);
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(private readonly configService: ConfigService, private readonly httpService: HttpService) {
     this.xanoApiUrl = process.env.XANO_API_URL;
     this.spotwareApiUrl = configService.get<string>('SPOTWARE_API_URL');
     this.apiToken = configService.get<string>('SPOTWARE_API_TOKEN');
+    this.xanoEquityUrl = process.env.XANO_API_EQUITYURL;
   }
 
+  // // Polling logic with login parameter
+  // async pollPositions(botInfo:Job) {
+  //   const login = botInfo.data.traderLogin;  // replace this with the desired login value or fetch dynamically if needed
+  //   this.logger.log(`Polling for open and closed positions for login: ${login}...`);
+  //   try {
+  //     const openPositions = await this.fetchOpenPositions(login);
+  //     console.log("🚀 ~ BaseOrderService ~ pollPositions ~ openPositions:", openPositions);
+  //     for (let i = 0; i < openPositions.length; i++) {
+  //       if (!botInfo.data.symbols.includes(openPositions[i].symbol)) {
+  //         botInfo.data.symbols.push(openPositions[i].symbol);
+  //       }
+  //       if(botInfo.data.openTimestamp)
+  //     }
+  //     //console.log("🚀 ~ BaseOrderService ~ pollPositions ~ botInfo:", botInfo.data)
+  //     const closedPositions = await this.fetchClosedPositions(login);
+  //     await this.updateXanoWithPositions(openPositions, closedPositions);
+  //     return {"message":`Polling started for account ${login}`}
+  //   } catch (error) {
+  //     this.logger.error(`Error during polling: ${error.message}`);
+  //   }
+  // }
   // Polling logic with login parameter
-  async pollPositions(botInfo:Job) {
-    const login = botInfo.data.traderLogin;  // replace this with the desired login value or fetch dynamically if needed
-    this.logger.log(`Polling for open and closed positions for login: ${login}...`);
-    try {
-      const openPositions = await this.fetchOpenPositions(login);
-      console.log("🚀 ~ BaseOrderService ~ pollPositions ~ openPositions:", openPositions);
-      for (let i = 0; i < openPositions.length; i++) {
-        if (!botInfo.data.symbols.includes(openPositions[i].symbol)) {
-          botInfo.data.symbols.push(openPositions[i].symbol);
-        }
-      }
-      //console.log("🚀 ~ BaseOrderService ~ pollPositions ~ botInfo:", botInfo.data)
-      const closedPositions = await this.fetchClosedPositions(login);
-      await this.updateXanoWithPositions(openPositions, closedPositions);
-      return {"message":`Polling started for account ${login}`}
-    } catch (error) {
-      this.logger.error(`Error during polling: ${error.message}`);
-    }
-  }
+async pollPositions(botInfo: Job) {
+  const login = botInfo.data.traderLogin; // Replace this with the desired login value or fetch dynamically if needed
+  this.logger.log(`Polling for open and closed positions for login: ${login}...`);
+  
+  try {
+    const openPositionsData = await this.fetchOpenPositions(login, botInfo);
+    // Fetch and update closed positions
+    const closedPositions = await this.fetchClosedPositions(login);
+    await this.updateXanoWithPositions(openPositionsData.openPositions, closedPositions);
 
-  private async fetchOpenPositions(login: number) {
+    return { message: `Polling started for account ${login}` };
+  } catch (error) {
+    this.logger.error(`Error during polling: ${error.message}`);
+  }
+}
+
+
+  private async fetchOpenPositions(login: number, botInfo:Job) {
     try {
       const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/openPositions`, {
         headers: { Authorization: `Bearer ${this.apiToken}` },
         params: { token: this.apiToken, login },
       });
       this.logger.log('Fetched open positions from Spotware', response.data);
-      return this.parseOpenPositionsCsv(response.data);
+      const openPositions = this.parseOpenPositionsCsv(response.data);
+      console.log("🚀 ~ BaseOrderService ~ pollPositions ~ openPositions:", openPositions);
+
+      // Track unique trading days
+      const tradingDaysSet = new Set<string>(); // Use a set to store unique dates
+      let tradingDays;
+
+      for (let i = 0; i < openPositions.length; i++) {
+        const position = openPositions[i];
+
+        // Add symbol to botInfo if not already included
+        if (!botInfo.data.symbols.includes(position.symbol)) {
+          botInfo.data.symbols.push(position.symbol);
+        }
+
+        // Extract the date from the openTimestamp and add it to the tradingDaysSet
+        const openDate = new Date(position.openTimestamp).toISOString().split('T')[0]; // Extract date part
+        tradingDaysSet.add(openDate);
+        botInfo.data.tradingDaysSet = tradingDaysSet;
+        tradingDays = tradingDaysSet.size;
+        botInfo.data.tradingDays = tradingDays
+        const tempData = botInfo.data;
+        botInfo.update(tempData);
+      }
+      this.logger.log(`Trading days for login ${login}: ${botInfo.data.tradingDays}`);
+
+      return {openPositions, tradingDays};
     } catch (error) {
       this.logger.error(`Failed to fetch open positions: ${error.message}`);
       throw new HttpException('Failed to fetch open positions', HttpStatus.FORBIDDEN);
