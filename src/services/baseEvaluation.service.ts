@@ -14,6 +14,9 @@ import { AccountConfig, PhaseSettings } from "src/data/rulesData";
 import axios from "axios";
 import { IAccountInterface } from 'src/services/Interfaces/IAccount.interface';
 import { Job } from "bull";
+import { HttpService } from "@nestjs/axios";
+import * as dayjs from 'dayjs';
+import { json } from "stream/consumers";
 // import { 
 //   ProtoSubscribeSpotQuotesReq, 
 //   ProtoSubscribeSpotQuotesRes, 
@@ -29,8 +32,11 @@ private client: tls.TLSSocket;
   private root2: protobuf.Root;
   private messageBuffer: Buffer = Buffer.alloc(0);
   private subscriptions: Set<number> = new Set(); // Store active subscriptions
-
-  constructor(@Inject('IAccountInterface') private readonly IAccountInterface:IAccountInterface) {}
+  private botInfo:Job;
+  private readonly xanoEquityUrl: string;
+  constructor(@Inject('IAccountInterface') private readonly IAccountInterface:IAccountInterface, private readonly httpService: HttpService) {
+    this.xanoEquityUrl = process.env.XANO_API_EQUITYURL;
+  }
 
   async onModuleInit() {
     await this.initializeConnection();
@@ -56,6 +62,7 @@ private client: tls.TLSSocket;
         console.log('SSL connection established');
         //this.createHeartbeatMessage()
         this.authManager()
+        this.sendHeartbeat()
         //this.subscribeToSpotQuotes()
       });
       this.client.setKeepAlive(true, 10000);
@@ -64,7 +71,7 @@ private client: tls.TLSSocket;
       });
       this.client.on('end', () => {
         console.log('Connection ended by server');
-        this.reconnect();
+        //this.reconnect();
       });
       
       // Listen for 'close' event, which happens when the connection fully closes
@@ -72,185 +79,94 @@ private client: tls.TLSSocket;
         console.log(`Connection closed${hadError ? ' due to an error' : ''}`);
         console.log('Socket destroyed:', this.client.destroyed); // Will be true after the socket is fully closed
       });
+      this.client.on('error', (err) => {
+        console.error('Connection error:', err.message);
+      });
     } catch (error) {
       console.error('Error initializing connection:', error);
     }
   }
-  // async subscribeToSpotQuotes(botInfo:Job) {
-  //   try {
-  //     if (!this.root) throw new Error('Protobuf root not loaded');
-  //     const symbolIds = await this.symbolList(botInfo.data.symbols)
-  //     // Lookup and create a SubscribeSpotQuotesReq message
-  //     const SubscribeSpotQuotesReq = this.root.lookupType('ProtoSubscribeSpotQuotesReq');
-  //     const ProtoPayloadType =  this.root.lookupEnum("ProtoCSPayloadType");
-  //     const ProtoMessage =  this.root2.lookupType("ProtoMessage");
+  async subscribeToSpotQuotes(botInfo: Job) {
+    try {
+      if (!this.root) throw new Error('Protobuf root not loaded');
+      this.botInfo = botInfo;
+      // Find unsubscribed symbols
+      const unsubscribedSymbols = botInfo.data.symbols.filter(
+        (symbol) => !botInfo.data.symbolsSubscribed.includes(symbol)
+      );
 
-  //     const authPayload = SubscribeSpotQuotesReq.create({
-  //       symbolId:symbolIds,
-  //       subscribeToSpotTimestamp: true
-  //     });
-  //     const payloadBuffer = SubscribeSpotQuotesReq.encode(authPayload).finish();
-    
-  //     // Create a ProtoMessage wrapping the heartbeat
-  //     const message = ProtoMessage.create({
-  //       payloadType: ProtoPayloadType.values.PROTO_SUBSCRIBE_SPOT_QUOTES_REQ,
-  //       payload: payloadBuffer,
-  //     });
-  //     // const message = SubscribeSpotQuotesReq.create({
-  //     //   payloadType: 601,
-  //     //   symbolId: 1,
-  //     //   subscribeToSpotTimestamp: true
-  //     // });
-  //     console.log("🚀 ~ BaseEvaluationService ~ subscribeToSpotQuotes ~ message:", message)
-  
-  //     const messageBuffer = Buffer.from(ProtoMessage.encode(message).finish());
+      if (unsubscribedSymbols.length === 0) {
+        console.log("All symbols are already subscribed.");
+        return { message: "All symbols are already subscribed" };
+      }
 
-  //     const fullMessage = this.prefixMessageWithLength(messageBuffer);
-  
-  //     const writeResult = this.client.write(fullMessage);
-  //     console.log("Sent subscription request:", writeResult);
-  //     if(writeResult){
-  //       for (let i = 0; i < botInfo.data.symbols.length; i++) {
-  //         if (!botInfo.data.symbolsSubscribed.includes(botInfo.data.symbols[i])) {
-  //           botInfo.data.symbolsSubscribed.push(botInfo.data.symbols[i]);
-  //         }
-  //       }
-  //     }
-  
-  //     // Await server response
-  //     return await new Promise((resolve, reject) => {
-  //       this.client.once('data', (data: Buffer) => {
-  //         console.log("🚀 ~ BaseEvaluationService ~ this.client.once ~ data:", data.toString())
-  //         try {
-  //           // Extract length-prefixed message
-  //           const responseLength = data.readUInt32BE(0);
-  //           console.log("🚀 ~ BaseEvaluationService ~ this.client.once ~ responseLength:", responseLength)
-  //           const responseBuffer = data.slice(4, 4 + responseLength);
-            
-  //           // Decode using expected response message type
-  //           const SubscribeSpotQuotesRes = this.root.lookupType('ProtoSubscribeSpotQuotesRes');
-  //           //const message = SubscribeSpotQuotesRes.create(payload);
+      // Get symbol IDs for unsubscribed symbols
+      const symbolIds = await this.symbolList(unsubscribedSymbols);
 
-  //           //const responseMessage = SubscribeSpotQuotesRes.decode(responseBuffer);
-  //           const err = SubscribeSpotQuotesRes.verify(responseBuffer);
-  //           console.log("🚀 ~ BaseEvaluationService ~ this.client.once ~ err:", err)
-  //           if (err) {
-  //             console.log(err)
-  //               throw err;
-  //           }
-  //           const message = SubscribeSpotQuotesRes.decode(messageBuffer);
-  //           console.log("🚀 ~ BaseEvaluationService ~ this.client.once ~ message:", message)
-  //           //return SubscribeSpotQuotesRes.toObject(message);
-  //           //Check for successful subscription response
-  //           if (message) {
-  //             console.log("Subscription confirmed:", message);
-  //             resolve({ message: "Subscription successful" });
-  //           } else {
-  //             reject(new Error('Unexpected response type'));
-  //           }
-  //         } catch (error) {
-  //           console.error("Decoding error:", error.message);
-  //           reject(new Error("Error decoding server response: " + error.message));
-  //         }
-  //       });
-  
-  //       // Timeout to avoid hanging indefinitely
-  //       setTimeout(() => {
-  //         reject(new Error('Subscription request timed out'));
-  //       }, 5000);
-  //     });
-  //   } catch (error) {
-  //     console.error('Subscription request failed:', error.message);
-  //     return { message: "Subscription request failed", error: error.message };
-  //   }
-  // }
-//   subscribe(req: ProtoSubscribeSpotQuotesReq): ProtoSubscribeSpotQuotesRes {
-//     req.symbolId.forEach(id => this.subscriptions.add(id));
-//     console.log(`Subscribed to symbols: ${Array.from(this.subscriptions)}`);
-    
-//     return { payloadType: ProtoCSPayloadType.PROTO_SUBSCRIBE_SPOT_QUOTES_RES };
-// }
-async subscribeToSpotQuotes(botInfo: Job) {
-  try {
-    if (!this.root) throw new Error('Protobuf root not loaded');
-    
-    // Find unsubscribed symbols
-    const unsubscribedSymbols = botInfo.data.symbols.filter(
-      (symbol) => !botInfo.data.symbolsSubscribed.includes(symbol)
-    );
+      // Lookup and create a SubscribeSpotQuotesReq message
+      const SubscribeSpotQuotesReq = this.root.lookupType('ProtoSubscribeSpotQuotesReq');
+      const ProtoPayloadType = this.root.lookupEnum("ProtoCSPayloadType");
+      const ProtoMessage = this.root2.lookupType("ProtoMessage");
 
-    if (unsubscribedSymbols.length === 0) {
-      console.log("All symbols are already subscribed.");
-      return { message: "All symbols are already subscribed" };
-    }
+      const authPayload = SubscribeSpotQuotesReq.create({
+        symbolId: symbolIds,
+        subscribeToSpotTimestamp: true
+      });
+      const payloadBuffer = SubscribeSpotQuotesReq.encode(authPayload).finish();
 
-    // Get symbol IDs for unsubscribed symbols
-    const symbolIds = await this.symbolList(unsubscribedSymbols);
-
-    // Lookup and create a SubscribeSpotQuotesReq message
-    const SubscribeSpotQuotesReq = this.root.lookupType('ProtoSubscribeSpotQuotesReq');
-    const ProtoPayloadType = this.root.lookupEnum("ProtoCSPayloadType");
-    const ProtoMessage = this.root2.lookupType("ProtoMessage");
-
-    const authPayload = SubscribeSpotQuotesReq.create({
-      symbolId: symbolIds,
-      subscribeToSpotTimestamp: true
-    });
-    const payloadBuffer = SubscribeSpotQuotesReq.encode(authPayload).finish();
-
-    // Create a ProtoMessage wrapping the subscription request
-    const message = ProtoMessage.create({
-      payloadType: ProtoPayloadType.values.PROTO_SUBSCRIBE_SPOT_QUOTES_REQ,
-      payload: payloadBuffer,
-    });
-
-    const messageBuffer = Buffer.from(ProtoMessage.encode(message).finish());
-    const fullMessage = this.prefixMessageWithLength(messageBuffer);
-
-    // Send subscription request
-    const writeResult = this.client.write(fullMessage);
-    console.log("Sent subscription request:", writeResult);
-
-    if (writeResult) {
-      // Update symbolsSubscribed with the new subscribed symbols
-      botInfo.data.symbolsSubscribed.push(...unsubscribedSymbols);
-    }
-
-    // Await server response
-    return await new Promise((resolve, reject) => {
-      this.client.once('data', (data: Buffer) => {
-        try {
-          const responseLength = data.readUInt32BE(0);
-          const responseBuffer = data.slice(4, 4 + responseLength);
-
-          // Decode the response
-          const SubscribeSpotQuotesRes = this.root.lookupType('ProtoSubscribeSpotQuotesRes');
-          const err = SubscribeSpotQuotesRes.verify(responseBuffer);
-          if (err) throw err;
-
-          const responseMessage = SubscribeSpotQuotesRes.decode(responseBuffer);
-          console.log("Subscription confirmed:", responseMessage);
-
-          if (responseMessage) {
-            resolve({ message: "Subscription successful" });
-          } else {
-            reject(new Error('Unexpected response type'));
-          }
-        } catch (error) {
-          console.error("Decoding error:", error.message);
-          reject(new Error("Error decoding server response: " + error.message));
-        }
+      // Create a ProtoMessage wrapping the subscription request
+      const message = ProtoMessage.create({
+        payloadType: ProtoPayloadType.values.PROTO_SUBSCRIBE_SPOT_QUOTES_REQ,
+        payload: payloadBuffer,
       });
 
-      setTimeout(() => {
-        reject(new Error('Subscription request timed out'));
-      }, 5000);
-    });
-  } catch (error) {
-    console.error('Subscription request failed:', error.message);
-    return { message: "Subscription request failed", error: error.message };
+      const messageBuffer = Buffer.from(ProtoMessage.encode(message).finish());
+      const fullMessage = this.prefixMessageWithLength(messageBuffer);
+
+      // Send subscription request
+      const writeResult = this.client.write(fullMessage);
+      console.log("Sent subscription request:", writeResult);
+
+      if (writeResult) {
+        // Update symbolsSubscribed with the new subscribed symbols
+        botInfo.data.symbolsSubscribed.push(...unsubscribedSymbols);
+      }
+
+      // Await server response
+      return await new Promise((resolve, reject) => {
+        this.client.once('data', (data: Buffer) => {
+          try {
+            const responseLength = data.readUInt32BE(0);
+            const responseBuffer = data.slice(4, 4 + responseLength);
+
+            // Decode the response
+            const SubscribeSpotQuotesRes = this.root.lookupType('ProtoSubscribeSpotQuotesRes');
+            const err = SubscribeSpotQuotesRes.verify(responseBuffer);
+            if (err) throw err;
+
+            const responseMessage = SubscribeSpotQuotesRes.decode(responseBuffer);
+            console.log("Subscription confirmed:", responseMessage);
+
+            if (responseMessage) {
+              resolve({ message: "Subscription successful" });
+            } else {
+              reject(new Error('Unexpected response type'));
+            }
+          } catch (error) {
+            console.error("Decoding error:", error.message);
+            reject(new Error("Error decoding server response: " + error.message));
+          }
+        });
+
+        setTimeout(() => {
+          reject(new Error('Subscription request timed out'));
+        }, 5000);
+      });
+    } catch (error) {
+      console.error('Subscription request failed:', error.message);
+      return { message: "Subscription request failed", error: error.message };
+    }
   }
-}
 
   async unsubscribeFromSpotQuotes(subscriptionId: string) {
     try {
@@ -278,57 +194,49 @@ async subscribeToSpotQuotes(botInfo: Job) {
     return Buffer.concat([lengthBuffer, buffer]);
   }
   // Handle incoming data, process ProtoSpotEvent messages
-private handleEventData(data: Buffer) {
-  console.log("Data received in handleEventData");
+  private handleEventData(data: Buffer) {
+    //console.log("Data received in handleEventData", data.toString());
 
-  // Append new data to the existing buffer
-  this.messageBuffer = Buffer.concat([this.messageBuffer, data]);
+    // Append new data to the existing buffer
+    this.messageBuffer = Buffer.concat([this.messageBuffer, data]);
 
-  while (true) {
-    // Check if we have enough data for the message length prefix
-    if (this.messageBuffer.length < 4) {
-      //console.log("Insufficient data for length prefix, waiting for more data.");
-      return;
+    while (true) {
+      // Check if we have enough data for the message length prefix
+      if (this.messageBuffer.length < 4) {
+        //console.log("Insufficient data for length prefix, waiting for more data.");
+        return;
+      }
+
+      // Read the length prefix
+      const length = this.messageBuffer.readUInt32BE(0);
+      //console.log("Message length prefix:", length);
+
+      // Verify if we have the full message based on the length prefix
+      if (this.messageBuffer.length < 4 + length) {
+        console.log("Incomplete message received, waiting for full data...");
+        return;
+      }
+
+      // Extract the complete message from the buffer
+      const eventDataBuffer = this.messageBuffer.slice(4, 4 + length);
+
+      // Update the buffer to remove the processed message
+      this.messageBuffer = this.messageBuffer.slice(4 + length);
+
+      const ProtoSpotEvent = this.root.lookupType('ProtoSpotEvent');
+
+      try {
+        // Decode the complete ProtoSpotEvent message
+        const decodedEvent = ProtoSpotEvent.decode(eventDataBuffer);
+        const protoJson = decodedEvent.toJSON();
+        console.log("Decoded ProtoSpotEvent:", protoJson);
+        this.checkRules(protoJson.symbolId);
+        // Process the decoded spot data
+        //this.processSpotData(decodedEvent);
+      } catch (error) {
+        console.error("Error decoding ProtoSpotEvent:", error.message);
+      }
     }
-
-    // Read the length prefix
-    const length = this.messageBuffer.readUInt32BE(0);
-    //console.log("Message length prefix:", length);
-
-    // Verify if we have the full message based on the length prefix
-    if (this.messageBuffer.length < 4 + length) {
-      console.log("Incomplete message received, waiting for full data...");
-      return;
-    }
-
-    // Extract the complete message from the buffer
-    const eventDataBuffer = this.messageBuffer.slice(4, 4 + length);
-
-    // Update the buffer to remove the processed message
-    this.messageBuffer = this.messageBuffer.slice(4 + length);
-
-    const ProtoSpotEvent = this.root.lookupType('ProtoSpotEvent');
-
-    try {
-      // Decode the complete ProtoSpotEvent message
-      const decodedEvent = ProtoSpotEvent.decode(eventDataBuffer);
-      console.log("Decoded ProtoSpotEvent:", decodedEvent);
-      // Process the decoded spot data
-      //this.processSpotData(decodedEvent);
-    } catch (error) {
-      console.error("Error decoding ProtoSpotEvent:", error.message);
-    }
-  }
-}
-  // Process received spot data (e.g., store/display prices)
-  private processSpotData(data: any) {
-    console.log("🚀 ~ BaseEvaluationService ~ processSpotData ~ data:", data)
-    // Assuming the data contains symbol and price
-    const symbol = data.ProtoSpotEvent.symbolId.Long.low;
-    const ask = data.ProtoSpotEvent.ask.Long.low;
-    const bid = data.ProtoSpotEvent.bid.Long.low;
-    console.log(`Symbol: ${symbol} | Ask: ${ask} | Bid: ${bid}`);
-    // Here, you can store the data in a database or cache as needed
   }
   async authManager(){
     try {
@@ -429,6 +337,28 @@ private handleEventData(data: Buffer) {
     // console.log("Sent authorization request:", writeResult);
     return messageBuffer;
   }
+  private sendHeartbeat() {
+    setInterval(() => {
+      const ProtoHeartbeatEvent =  this.root2.lookupType("ProtoHeartbeatEvent");
+    const ProtoMessage =  this.root2.lookupType("ProtoMessage");
+    const ProtoPayloadType =  this.root.lookupEnum("ProtoPayloadType");
+  
+      const heartbeatPayload = ProtoHeartbeatEvent.create();
+      const payloadBuffer = ProtoHeartbeatEvent.encode(heartbeatPayload).finish();
+  
+      const message = ProtoMessage.create({
+        payloadType: ProtoPayloadType.values.HEARTBEAT_EVENT,
+        payload: payloadBuffer,
+      });
+  
+      const messageBuffer = Buffer.from(ProtoMessage.encode(message).finish());
+      const fullMessage = this.prefixMessageWithLength(messageBuffer);
+  
+      this.client.write(fullMessage);
+      console.log('Sent heartbeat message');
+    }, 30000); // Send heartbeat every 30 seconds
+  }
+  
   async rulesEvaluation(botInfo:Job){
     try{
       const accountdata = await this.IAccountInterface.AccountDetails(botInfo.data);
@@ -483,8 +413,32 @@ private handleEventData(data: Buffer) {
 
     }
   }
-  async checkRules(botInfo:Job){
+  async checkRules(symbolId){
     try{
+      if(this.botInfo.data.symbolsSubscribed.includes(symbolId)){
+        console.log("symbol present");
+        const currentEquity = await this.getCurrentEquity(this.botInfo.data.accountId);
+        const startingDailyEquity = await this.getDailyEquity(this.botInfo.data.accountId);
+        const maxDailyCurrency = this.botInfo.data.max_daily_currency;
+        const maxTotalCurrency = this.botInfo.data.max_total_currency;
+        const initial_balance = this.botInfo.data.initial_balance;
+
+        const dataJson = {
+          currentEquity,
+          startingDailyEquity,
+          maxDailyCurrency,
+          maxTotalCurrency,
+          initial_balance
+        }
+        const checkDailyKOD = await this.dailyKOD(dataJson);
+        if(checkDailyKOD){
+          console.log("User failed daily KOD ", checkDailyKOD)
+        }
+      }
+      else{
+        console.log("Symbol not for this user")
+        return;
+      }
 
     }
     catch(error){
@@ -503,7 +457,7 @@ private handleEventData(data: Buffer) {
   }
   async TotalKOD(req){
     try{
-      const result = req.currentEquity - (req.startingDailyEquity - req.maxDailyCurrency) < 0;
+      const result = req.currentEquity - (req.initial_balance - req.maxTotalCurrency) < 0;
       return result;
     }
     catch(error){
@@ -521,10 +475,53 @@ private handleEventData(data: Buffer) {
       
     }
   }
-  private reconnect() {
-    setTimeout(() => {
-      console.log('Reconnecting...');
-      this.initializeConnection(); // Reinitialize the connection
-    }, 1000); // Wait 1 seconds before reconnecting
+  async getTradingDays(){
+    try{
+      const prevDataResponse = await this.httpService
+      .get(`${process.env.xanoEquityUrl}?account=${this.botInfo.data.accountId}`, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      console.log("🚀 ~ BaseEvaluationService ~ getTradingDays ~ prevDataResponse:", prevDataResponse)
+    }
+    catch(error){
+      console.log("🚀 ~ BaseEvaluationService ~ getTradingDays ~ error:", error)
+    }
+  }
+  async getCurrentEquity(accountId){
+    try{
+      const reqjson = {
+        accountId
+      }
+      const accountData = await this.IAccountInterface.AccountDetails(reqjson);
+      if(accountData.balance){
+        console.log("🚀 ~ BaseEvaluationService ~ getCurrentEquity ~ balance:", accountData.balance);
+        return accountData.balance
+      }
+    }
+    catch(error) {
+    console.log("🚀 ~ BaseEvaluationService ~ getCurrentEquity ~ error:", error)
+    }
+  }
+  async getDailyEquity(accountId){
+    try{
+      const reqjson = {
+        accountId
+      }
+      const date = dayjs(Date.now()).format('YYYY-MM-DD');
+        console.log("🚀 ~ BaseEvaluationService ~ getDailyEquity ~ prevDate:", date)
+        const prevDataResponse = await this.httpService
+          .get(`${this.xanoEquityUrl}?account=${accountId}&sde_date=${date}`, {
+            headers: { 'Content-Type': 'application/json' },
+          })
+  
+      const accountData = await this.IAccountInterface.AccountDetails(reqjson);
+      if(accountData.balance){
+        console.log("🚀 ~ BaseEvaluationService ~ getCurrentEquity ~ balance:", accountData.balance);
+        return accountData.balance
+      }
+    }
+    catch(error) {
+    console.log("🚀 ~ BaseEvaluationService ~ getCurrentEquity ~ error:", error)
+    }
   }
 }

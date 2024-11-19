@@ -29,4 +29,6 @@ export class RulesRequest {
     extend_challenge: string;
     challenge_extra_days: string;
     profit_to_extend: string;
+    consistency_kod:boolean;
+    consistency_value:number;
   }

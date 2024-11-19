@@ -19,6 +19,8 @@ export class EvaluationBotProcess extends BaseBotProcess{
             if(phaseSettings){
                 const botData = botInfo.data;
                 const connectedPhaseData = Object.assign({}, botData, phaseSettings);
+                connectedPhaseData.max_daily_currency = parseInt(connectedPhaseData.Initial_balance)*(parseInt(connectedPhaseData.max_daily_loss)/100)
+                connectedPhaseData.max_total_currency = parseInt(connectedPhaseData.Initial_balance)*(parseInt(connectedPhaseData.max_loss)/100)
                 const tempInfo = connectedPhaseData;
                 botInfo.update(tempInfo)
                 console.log("🚀 ~ EvaluationBotProcess ~ connectPhase ~ botInfo:", botInfo.data)
@@ -78,6 +80,9 @@ export class EvaluationBotProcess extends BaseBotProcess{
             console.log("🚀 ~ EvaluationBotProcess ~ sendWon ~ botInfo:", botInfo.data)
 
             this.IEvaluationInterface.rulesEvaluation(botInfo)
+            if(botInfo.data.phase === process.env.Phase_1){
+                this.switchToPhase2(botInfo);
+            }
         }
         catch(error){
             console.log("🚀 ~ EvaluationBotProcess ~ sendWon ~ error:", error)
@@ -100,6 +105,17 @@ export class EvaluationBotProcess extends BaseBotProcess{
         catch(error){
             console.log("🚀 ~ EvaluationBotProcess ~ sendWon ~ error:", error)
             
+        }
+    }
+    async switchToPhase2(botInfo:Job){
+        try{
+            botInfo.data.phase = process.env.Phase_2;
+            const tempData = botInfo.data;
+            botInfo.update(tempData);
+            this.startChallenge(botInfo)
+        }
+        catch(error){
+            console.log("🚀 ~ EvaluationBotProcess ~ switchToPhase2 ~ error:", error)
         }
     }
 }
