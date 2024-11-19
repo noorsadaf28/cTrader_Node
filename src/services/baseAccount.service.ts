@@ -123,7 +123,7 @@ export abstract class BaseAccountService implements IAccountInterface {
   async AccountDetails(res) {
     try {
       const accountId = res.accountId;
-      console.log("🚀 ~ BaseAccountService ~ AccountDetails ~ accountId:", accountId);
+      //console.log("🚀 ~ BaseAccountService ~ AccountDetails ~ accountId:", accountId);
       const token = process.env.token;
       const url = `${process.env.accountinfo}${accountId}`;
 
@@ -131,7 +131,7 @@ export abstract class BaseAccountService implements IAccountInterface {
         headers: { Authorization: `Bearer ${token}` },
         params: { token: token }
       });
-      console.log("🚀 ~ BaseAccountService ~ AccountDetails ~ response:", response.data);
+      //console.log("🚀 ~ BaseAccountService ~ AccountDetails ~ response:", response.data);
       return response.data;
     } catch (error) {
       console.log("🚀 ~ BaseAccountService ~ AccountDetails ~ error:", error);

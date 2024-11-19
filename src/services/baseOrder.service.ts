@@ -68,7 +68,7 @@ async pollPositions(botInfo: Job) {
         headers: { Authorization: `Bearer ${this.apiToken}` },
         params: { token: this.apiToken, login },
       });
-      this.logger.log('Fetched open positions from Spotware', response.data);
+      this.logger.log('Fetched open positions from Spotware');
       const openPositions = this.parseOpenPositionsCsv(response.data);
       console.log("🚀 ~ BaseOrderService ~ pollPositions ~ openPositions:", openPositions);
 
@@ -79,21 +79,25 @@ async pollPositions(botInfo: Job) {
       for (let i = 0; i < openPositions.length; i++) {
         const position = openPositions[i];
 
-        // Add symbol to botInfo if not already included
-        if (!botInfo.data.symbols.includes(position.symbol)) {
-          botInfo.data.symbols.push(position.symbol);
-        }
+        
 
         // Extract the date from the openTimestamp and add it to the tradingDaysSet
         const openDate = new Date(position.openTimestamp).toISOString().split('T')[0]; // Extract date part
         tradingDaysSet.add(openDate);
-        botInfo.data.tradingDaysSet = tradingDaysSet;
         tradingDays = tradingDaysSet.size;
-        botInfo.data.tradingDays = tradingDays
-        const tempData = botInfo.data;
-        botInfo.update(tempData);
+        if(botInfo != undefined){
+          console.log("here-----------------")
+            // Add symbol to botInfo if not already included
+          if (!botInfo.data.symbols.includes(position.symbol)) {
+            botInfo.data.symbols.push(position.symbol);
+          }
+          botInfo.data.tradingDaysSet = tradingDaysSet;
+          botInfo.data.tradingDays = tradingDays
+          const tempData = botInfo.data;
+          botInfo.update(tempData);
+        }
       }
-      this.logger.log(`Trading days for login ${login}: ${botInfo.data.tradingDays}`);
+      this.logger.log(`Trading days for login ${login}: ${tradingDays}`);
 
       return {openPositions, tradingDays};
     } catch (error) {
