@@ -132,8 +132,8 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
         botInfo.data.symbolsSubscribed.push(...unsubscribedSymbols);
         this.botInfo = botInfo
       }
-      console.log("🚀 ~ BaseEvaluationService ~ subscribeToSpotQuotes ~ symbolsSubscribed -------------  1:", botInfo.data)
-      console.log("🚀 ~ BaseEvaluationService ~ subscribeToSpotQuotes ~ symbolsSubscribed-------------- 2:", this.botInfo.data)
+      // console.log("🚀 ~ BaseEvaluationService ~ subscribeToSpotQuotes ~ symbolsSubscribed -------------  1:", botInfo.data)
+      // console.log("🚀 ~ BaseEvaluationService ~ subscribeToSpotQuotes ~ symbolsSubscribed-------------- 2:", this.botInfo.data)
 
       // Await server response
       return await new Promise((resolve, reject) => {
@@ -232,8 +232,10 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
         // Decode the complete ProtoSpotEvent message
         const decodedEvent = ProtoSpotEvent.decode(eventDataBuffer);
         const protoJson = decodedEvent.toJSON();
-        console.log("Decoded ProtoSpotEvent:", protoJson);
-        this.checkRules(protoJson.symbolId);
+        if(protoJson.payloadType == 'PROTO_SPOT_EVENT'){
+          console.log("Tick Recieved:", protoJson);
+          this.checkRules(protoJson.symbolId);
+        }
         // Process the decoded spot data
         //this.processSpotData(decodedEvent);
       } catch (error) {
@@ -427,7 +429,6 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
         }
       });
 
-      console.log("🚀 ~ BaseEvaluationService ~ symbolname ~ symbolName:", symbolName)
       return symbolName;
     }
     catch (error) {
@@ -454,7 +455,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
           initial_balance
         }
         const checkDailyKOD = await this.dailyKOD(dataJson);
-        const checkTotalKOD = await this.dailyKOD(dataJson);
+        const checkTotalKOD = await this.TotalKOD(dataJson);
         if (checkDailyKOD) {
           console.log("User failed daily KOD ", checkDailyKOD)
         }
@@ -543,7 +544,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       const date = dayjs(Date.now()).format('YYYY-MM-DD');
       console.log("🚀 ~ BaseEvaluationService ~ getDailyEquity ~ prevDate:", date)
       const prevDataResponse = await axios.get(`${this.xanoEquityUrl}/${accountId}/`)
-      console.log("🚀 ~ BaseEvaluationService ~ getDailyEquity ~ prevDataResponse:", prevDataResponse.data)
+      console.log("🚀 ~ BaseEvaluationService ~ getDailyEquity ~ prevDataResponse:", prevDataResponse.data.starting_daily_equity)
       return prevDataResponse.data.starting_daily_equity;
       // const accountData = await this.IAccountInterface.AccountDetails(reqjson);
       // if(accountData.balance){
