@@ -144,6 +144,7 @@ async pollPositions(botInfo: Job) {
           stake: columns[10],
           spreadBetting: columns[11],
           usedMargin: columns[12],
+          stop_loss:'NULL'
         };
       });
   }
@@ -173,6 +174,8 @@ async pollPositions(botInfo: Job) {
           spreadBetting: columns[15],
           entryPrice: columns[16],
           dealId: columns[17],
+          take_profit:'NULL',
+          updated_at:Date.now()
         };
       });
   }
@@ -271,8 +274,11 @@ async pollPositions(botInfo: Job) {
       close_date: position.closeTimestamp,
       profit: parseFloat(position.pnl),
       broker: 'Spotware',
+      stop_loss:'NULL',
+      take_profit:'NULL',
       open_reason: position.bookType || 'AUTO',
       close_reason: 'AUTO',
+      updated_at: Date.now()
     
     };
   }
