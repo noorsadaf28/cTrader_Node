@@ -170,7 +170,8 @@ async pollPositions(botInfo: Job) {
           spreadBetting: columns[15],
           entryPrice: columns[16],
           dealId: columns[17],
-          take_profit:'NULL'
+          take_profit:'NULL',
+          updated_at:Date.now()
         };
       });
   }
@@ -273,6 +274,7 @@ async pollPositions(botInfo: Job) {
       take_profit:'NULL',
       open_reason: position.bookType || 'AUTO',
       close_reason: 'AUTO',
+      updated_at: Date.now()
     
     };
   }

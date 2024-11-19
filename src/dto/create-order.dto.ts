@@ -65,4 +65,9 @@ export class CreateOrderDto {
   @IsString()
   @IsOptional()
   stop_loss?: string;
+
+ 
+  @IsString()
+  @IsOptional()
+  updated_at?: any;
 }
