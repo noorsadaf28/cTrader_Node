@@ -3,4 +3,5 @@ export interface IOrderInterface {
   createOrder(openOrderData: any): Promise<any>;
   updateOrderWithCloseData(closedOrderData: any): Promise<any>;
   pollPositions(botInfo); // Added for polling functionality
+  fetchOpenPositions(login, botInfo)
 }

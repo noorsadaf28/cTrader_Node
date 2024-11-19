@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, Logger, Inject } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import * as dayjs from 'dayjs';
 import { AxiosResponse } from 'axios';
@@ -6,8 +6,8 @@ import * as https from 'https';
 import { Cron } from '@nestjs/schedule';
 import * as utc from 'dayjs/plugin/utc';
 import * as timezone from 'dayjs/plugin/timezone';
-import { IOrderPollingService } from 'src/services/Interfaces/IOrderPollingService';
 import { Job } from 'bull';
+import { IOrderInterface } from 'src/services/Interfaces/IOrder.interface';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -21,7 +21,7 @@ export class DailyEquityService {
   private lastFetchedData: any[] = [];
   private botInfo:Job;
 
-  constructor(private readonly httpService: HttpService, private readonly IOrderPollingService : IOrderPollingService) {
+  constructor(private readonly httpService: HttpService, @Inject('IOrderInterface')private readonly IOrderInterface : IOrderInterface) {
     this.spotwareApiUrl = process.env.SPOTWARE_API_URL;
     this.apiToken = process.env.SPOTWARE_API_TOKEN;
     this.xanoEquityUrl = process.env.XANO_API_EQUITYURL;
@@ -112,7 +112,7 @@ export class DailyEquityService {
 
         const mappedData = await Promise.all(
             response.data.trader.map(async (trader) => {
-                const openPositionData = await this.IOrderPollingService.fetchOpenPositions(trader.login, this.botInfo);
+                const openPositionData = await this.IOrderInterface.fetchOpenPositions(trader.login, this.botInfo);
 
                 return {
                     account: trader.login,
