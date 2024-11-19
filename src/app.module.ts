@@ -25,9 +25,7 @@ import { AccountController } from './controllers/account.controller';
 import { OrderController } from './controllers/order.controller';
 import { DailyEquityController } from './controllers/equity.controller';
 
-import { OrderPollingService } from './services/exchange/cTrader/order.polling.service';
 import { EvaluationBotProcess } from './services/botProcess/evaluationBot.process';
-import { IOrderPollingService } from './services/Interfaces/IOrderPollingService';
 import { activeBotQueue } from 'config/constant';
 import { BaseOrderService } from './services/baseOrder.service';
 

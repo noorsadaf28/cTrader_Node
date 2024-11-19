@@ -19,8 +19,8 @@ export class EvaluationBotProcess extends BaseBotProcess{
             if(phaseSettings){
                 const botData = botInfo.data;
                 const connectedPhaseData = Object.assign({}, botData, phaseSettings);
-                connectedPhaseData.max_daily_currency = parseInt(connectedPhaseData.Initial_balance)*(parseInt(connectedPhaseData.max_daily_loss)/100)
-                connectedPhaseData.max_total_currency = parseInt(connectedPhaseData.Initial_balance)*(parseInt(connectedPhaseData.max_loss)/100)
+                connectedPhaseData.max_daily_currency = parseInt(connectedPhaseData.Initial_balance)*(connectedPhaseData.max_daily_loss/100)
+                connectedPhaseData.max_total_currency = parseInt(connectedPhaseData.Initial_balance)*(connectedPhaseData.max_loss/100)
                 const tempInfo = connectedPhaseData;
                 botInfo.update(tempInfo)
                 console.log("🚀 ~ EvaluationBotProcess ~ connectPhase ~ botInfo:", botInfo.data)

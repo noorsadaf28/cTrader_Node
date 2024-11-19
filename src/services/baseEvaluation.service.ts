@@ -34,7 +34,7 @@ private client: tls.TLSSocket;
   private subscriptions: Set<number> = new Set(); // Store active subscriptions
   private botInfo:Job;
   private readonly xanoEquityUrl: string;
-  constructor(@Inject('IAccountInterface') private readonly IAccountInterface:IAccountInterface, private readonly httpService: HttpService) {
+  constructor(@Inject('IAccountInterface') private readonly IAccountInterface:IAccountInterface) {
     this.xanoEquityUrl = process.env.XANO_API_EQUITYURL;
   }
 
@@ -130,7 +130,10 @@ private client: tls.TLSSocket;
       if (writeResult) {
         // Update symbolsSubscribed with the new subscribed symbols
         botInfo.data.symbolsSubscribed.push(...unsubscribedSymbols);
+        this.botInfo = botInfo
       }
+        console.log("🚀 ~ BaseEvaluationService ~ subscribeToSpotQuotes ~ symbolsSubscribed -------------  1:", botInfo.data)
+        console.log("🚀 ~ BaseEvaluationService ~ subscribeToSpotQuotes ~ symbolsSubscribed-------------- 2:", this.botInfo.data)
 
       // Await server response
       return await new Promise((resolve, reject) => {
@@ -367,18 +370,18 @@ private client: tls.TLSSocket;
         const phaseSettings = PhaseSettings[botInfo.data.Phase];
         console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ phaseSettings:", phaseSettings)
         ruledata.account = accountdata.login;
-        ruledata.balance = accountdata.balance;
+        ruledata.balance = accountdata.balance.toString();
         ruledata.request_type = botInfo.data.request_type;
         ruledata.metatrader = AccountConfig.METATRADER_PLATFORM,
         ruledata.status = botInfo.data.status;
-        ruledata.initial_balance = accountdata.balance;
+        ruledata.initial_balance = accountdata.balance.toString();
         ruledata.max_daily_loss = phaseSettings.max_daily_loss;
         ruledata.max_loss = phaseSettings.max_loss;
         ruledata.profit_target= phaseSettings.profit_target,
         ruledata.minimum_trading_days = phaseSettings.minimum_trading_days,
         ruledata.max_trading_days = phaseSettings.max_trading_days,
-        ruledata.max_daily_currency = phaseSettings.max_daily_currency,
-        ruledata.max_total_currency = phaseSettings.max_total_currency,
+        ruledata.max_daily_currency = botInfo.data.max_daily_currency.toString(),
+        ruledata.max_total_currency = botInfo.data.max_total_currency.toString(),
         ruledata.starting_daily_equity = phaseSettings.starting_daily_equity,
         ruledata.phase = botInfo.data.Phase;
         console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ ruledata:", ruledata)
@@ -413,15 +416,34 @@ private client: tls.TLSSocket;
 
     }
   }
+  async symbolname (symbolID){
+    try{
+      let symbolName;
+      const symbolURL = process.env.symbolURL;
+      const response = await axios.get(`${symbolURL}${process.env.token}`);
+      response.data.symbol.forEach(totalsymbol => {
+          if(totalsymbol.id == symbolID){
+            symbolName =totalsymbol.name;
+        }});
+        
+      console.log("🚀 ~ BaseEvaluationService ~ symbolname ~ symbolName:", symbolName)
+      return symbolName;
+    }
+    catch(error){
+    console.log("🚀 ~ BaseEvaluationService ~ symbolList ~ error:", error.response.data)
+
+    }
+  }
   async checkRules(symbolId){
     try{
-      if(this.botInfo.data.symbolsSubscribed.includes(symbolId)){
+      const symbolName = await this.symbolname(symbolId)
+      if(this.botInfo.data.symbolsSubscribed.includes(symbolName)){
         console.log("symbol present");
         const currentEquity = await this.getCurrentEquity(this.botInfo.data.accountId);
         const startingDailyEquity = await this.getDailyEquity(this.botInfo.data.accountId);
-        const maxDailyCurrency = this.botInfo.data.max_daily_currency;
-        const maxTotalCurrency = this.botInfo.data.max_total_currency;
-        const initial_balance = this.botInfo.data.initial_balance;
+        const maxDailyCurrency = parseInt(this.botInfo.data.max_daily_currency);
+        const maxTotalCurrency = parseInt(this.botInfo.data.max_total_currency);
+        const initial_balance = parseInt(this.botInfo.data.initial_balance);
 
         const dataJson = {
           currentEquity,
@@ -448,6 +470,7 @@ private client: tls.TLSSocket;
   async dailyKOD(req){
     try{
       const result = req.currentEquity - (req.startingDailyEquity - req.maxDailyCurrency) < 0;
+      console.log("🚀 ~ BaseEvaluationService ~ dailyKOD ~ result:", result)
       return result;
     }
     catch(error){
@@ -458,6 +481,7 @@ private client: tls.TLSSocket;
   async TotalKOD(req){
     try{
       const result = req.currentEquity - (req.initial_balance - req.maxTotalCurrency) < 0;
+      console.log("🚀 ~ BaseEvaluationService ~ TotalKOD ~ result:", result)
       return result;
     }
     catch(error){
@@ -468,6 +492,7 @@ private client: tls.TLSSocket;
   async ConsistencyKOD(req){
     try{
       const result = req.currentEquity - (req.startingDailyEquity - req.maxDailyCurrency) < 0;
+      console.log("🚀 ~ BaseEvaluationService ~ ConsistencyKOD ~ result:", result)
       return result;
     }
     catch(error){
@@ -477,10 +502,13 @@ private client: tls.TLSSocket;
   }
   async getTradingDays(){
     try{
-      const prevDataResponse = await this.httpService
-      .get(`${process.env.xanoEquityUrl}?account=${this.botInfo.data.accountId}`, {
+      const prevDataResponse = await axios.get(`${process.env.xanoEquityUrl}?account=${this.botInfo.data.accountId}`, {
         headers: { 'Content-Type': 'application/json' },
       });
+      // const prevDataResponse = await this.httpService
+      // .get(`${process.env.xanoEquityUrl}?account=${this.botInfo.data.accountId}`, {
+      //   headers: { 'Content-Type': 'application/json' },
+      // });
       console.log("🚀 ~ BaseEvaluationService ~ getTradingDays ~ prevDataResponse:", prevDataResponse)
     }
     catch(error){
@@ -504,21 +532,19 @@ private client: tls.TLSSocket;
   }
   async getDailyEquity(accountId){
     try{
-      const reqjson = {
-        accountId
-      }
+      // const reqjson = {
+      //   accountId
+      // }
       const date = dayjs(Date.now()).format('YYYY-MM-DD');
         console.log("🚀 ~ BaseEvaluationService ~ getDailyEquity ~ prevDate:", date)
-        const prevDataResponse = await this.httpService
-          .get(`${this.xanoEquityUrl}?account=${accountId}&sde_date=${date}`, {
-            headers: { 'Content-Type': 'application/json' },
-          })
-  
-      const accountData = await this.IAccountInterface.AccountDetails(reqjson);
-      if(accountData.balance){
-        console.log("🚀 ~ BaseEvaluationService ~ getCurrentEquity ~ balance:", accountData.balance);
-        return accountData.balance
-      }
+        const prevDataResponse = await axios.get(`${this.xanoEquityUrl}/${accountId}/`)
+          console.log("🚀 ~ BaseEvaluationService ~ getDailyEquity ~ prevDataResponse:", prevDataResponse.data)
+      return prevDataResponse.data.starting_daily_equity;
+      // const accountData = await this.IAccountInterface.AccountDetails(reqjson);
+      // if(accountData.balance){
+      //   console.log("🚀 ~ BaseEvaluationService ~ getCurrentEquity ~ balance:", accountData.balance);
+      //   return accountData.balance
+      // }
     }
     catch(error) {
     console.log("🚀 ~ BaseEvaluationService ~ getCurrentEquity ~ error:", error)

@@ -16,7 +16,7 @@ export class BaseOrderService implements IOrderInterface {
   private readonly xanoEquityUrl: string;
   private readonly logger = new Logger(BaseOrderService.name);
 
-  constructor(private readonly configService: ConfigService, private readonly httpService: HttpService) {
+  constructor(private readonly configService: ConfigService) {
     this.xanoApiUrl = process.env.XANO_API_URL;
     this.spotwareApiUrl = configService.get<string>('SPOTWARE_API_URL');
     this.apiToken = configService.get<string>('SPOTWARE_API_TOKEN');
@@ -62,7 +62,7 @@ async pollPositions(botInfo: Job) {
 }
 
 
-  private async fetchOpenPositions(login: number, botInfo:Job) {
+  async fetchOpenPositions(login: number, botInfo:Job) {
     try {
       const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/openPositions`, {
         headers: { Authorization: `Bearer ${this.apiToken}` },
@@ -172,7 +172,6 @@ async pollPositions(botInfo: Job) {
         };
       });
   }
-
   private async updateXanoWithPositions(openPositions: any[], closedPositions: any[]) {
     for (const pos of openPositions) {
       const openOrderData: CreateOrderDto = this.mapOpenPositionToOrderDto(pos);

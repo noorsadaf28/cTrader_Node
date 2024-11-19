@@ -5,6 +5,12 @@ import { ConfigService } from "@nestjs/config";
 import { SpotwareService } from "./exchange/cTrader/spotware.account.service";
 import { HttpException, HttpStatus } from "@nestjs/common";
 import { v4 as uuidv4 } from 'uuid'; // Import the UUID function
+import * as dayjs from 'dayjs';
+import { AxiosResponse } from 'axios';
+import * as https from 'https'; 
+import { Cron } from '@nestjs/schedule';
+import * as utc from 'dayjs/plugin/utc';
+import * as timezone from 'dayjs/plugin/timezone';
 
 export abstract class BaseAccountService implements IAccountInterface {
   private readonly spotwareApiUrl: string;
@@ -22,6 +28,7 @@ export abstract class BaseAccountService implements IAccountInterface {
     try {
       const xanoApiUrl = process.env.XANO_API_URL_1;
       const MakeUrl = process.env.MAKEENDPOINT_URL;
+      const xanoDailyEquityUrl=process.env.XANO_API_EQUITYURL;
       const ctidResponse = await this.createCTID(req.email, req.preferredLanguage);
       const userId = parseInt(ctidResponse.userId);
       console.log("🚀 ~ BaseAccountService ~ userId:", userId);
@@ -67,6 +74,7 @@ export abstract class BaseAccountService implements IAccountInterface {
         ChallengeID: req.ChallengeID || "1292" // Use the ChallengeID from the request if available, otherwise use a default
       };
       
+      
       // Enhanced console log to display data types and values for each property in accounts
       console.log("Data Structure and Types for accounts[0]:");
       console.log("UUID:", generatedUuid, "| Type:", typeof generatedUuid);
@@ -80,8 +88,26 @@ export abstract class BaseAccountService implements IAccountInterface {
 
       const response = await axios.post(xanoApiUrl, dataJson);
       const response1 = await axios.post(MakeUrl, dataJson);
-      console.log('Account created in Make:', response1.data);
-      console.log('Account created in Xano:', response.data);
+
+
+      // Create daily equity data
+    const dailyEquityData = {
+      account: traderLogin,
+      starting_daily_equity: traderResponse.balance.toString(),
+      sde_date: dayjs().format('YYYY-MM-DD'),
+      gmt_date: dayjs().toISOString(),
+      created_at: dayjs().toISOString(),
+      status: 'pending',
+      trading_days: '0',
+      challenge_begins: dayjs().subtract(30, 'days').format('YYYY-MM-DD'),
+      new_status: 'pending'
+    };
+
+    const response2 = await axios.post(xanoDailyEquityUrl, dailyEquityData);
+
+    console.log('Account created in Make:', response1.data);
+    console.log('Account created in Xano:', response.data);
+    console.log('Daily equity data created in Xano:', response2.data);
 
       return {
         ctid: userId,

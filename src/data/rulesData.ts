@@ -1,9 +1,9 @@
 // account-config.enum.ts
 
 export enum TradingPhases {
-    PHASE_0 = 'Phase_0',
-    PHASE_1 = 'Phase_1',
-    PHASE_2 = 'Phase_2',
+    PHASE_0 = '0 Phase',
+    PHASE_1 = '1st Phase',
+    PHASE_2 = '2nd Phase',
     FUNDED = 'Funded'
   }
   

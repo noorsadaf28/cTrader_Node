@@ -10,4 +10,5 @@ export interface IEvaluationInterface{
     rulesEvaluation(body);
     dailyKOD(req)
     symbolList (symbols)
+    getDailyEquity(accountId)
 }
