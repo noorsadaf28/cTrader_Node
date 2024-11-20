@@ -470,7 +470,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
 
     }
     catch (error) {
-
+    console.log("🚀 ~ BaseEvaluationService ~ checkRules ~ error:", error)
     }
   }
   async dailyKOD(req) {
