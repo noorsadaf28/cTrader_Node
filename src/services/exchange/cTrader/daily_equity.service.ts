@@ -29,14 +29,17 @@ export class DailyEquityService {
   }
 
   // Cron job that runs daily at 00:00 Madrid time
+  
   @Cron('0 0 * * *', {
     timeZone: 'Europe/Madrid',
   })
   async handleCron() {
-    this.logger.log('Executing daily equity update via cron job at 00:00 Madrid time');
+    const madridTime = dayjs().tz('Europe/Madrid').format('YYYY-MM-DD HH:mm:ss');
+    this.logger.log(`Executing daily equity update via cron job at 00:00 Madrid time: ${madridTime}`);
     try {
       const result = await this.updateDailyEquityForTraders();
       this.logger.log('Daily equity update process completed successfully');
+      this.logger.log(`Executing daily equity update via cron job at 00:00 Madrid time: ${madridTime}`);
       this.logger.debug(`Update result: ${JSON.stringify(result)}`);
     } catch (error) {
       this.logger.error(`Cron job failed: ${error.message}`);
@@ -143,6 +146,8 @@ export class DailyEquityService {
   // Always create new records in Xano for daily equity data
   async createDailyEquityInXano(equityData: any[]) {
     this.logger.log('Starting process to create new daily equity records in Xano');
+    const madridTime = dayjs().tz('Europe/Madrid').format('YYYY-MM-DD HH:mm:ss');
+    this.logger.log(`Executing daily equity update via cron job at 00:00 Madrid time: ${madridTime}`);
     this.logger.debug(`Received equityData: ${JSON.stringify(equityData)}`);
     
     const results = [];

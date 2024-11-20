@@ -194,7 +194,7 @@ export abstract class BaseAccountService implements IAccountInterface {
       const depositCurrency = req.Currency;
       const groupName = process.env.groupName;
       const hashedPassword = process.env.hashedPassword;
-      const leverageInCents = 10000;
+      const leverageInCents = req.Leverage;
       const totalMarginCalculationType = process.env.margingType;
       const createTrader = {
         accessRights, accountType, balance, brokerName, depositCurrency, groupName, hashedPassword, leverageInCents, totalMarginCalculationType
