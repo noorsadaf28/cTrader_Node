@@ -375,17 +375,20 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       ruledata.balance = accountdata.balance.toString();
       ruledata.request_type = botInfo.data.request_type;
       ruledata.metatrader = AccountConfig.METATRADER_PLATFORM,
-        ruledata.status = botInfo.data.status;
+      ruledata.status = botInfo.data.status;
       ruledata.initial_balance = accountdata.balance.toString();
       ruledata.max_daily_loss = phaseSettings.max_daily_loss;
       ruledata.max_loss = phaseSettings.max_loss;
       ruledata.profit_target = phaseSettings.profit_target,
-        ruledata.minimum_trading_days = phaseSettings.minimum_trading_days,
-        ruledata.max_trading_days = phaseSettings.max_trading_days,
-        ruledata.max_daily_currency = botInfo.data.max_daily_currency.toString(),
-        ruledata.max_total_currency = botInfo.data.max_total_currency.toString(),
-        ruledata.starting_daily_equity = phaseSettings.starting_daily_equity,
-        ruledata.phase = botInfo.data.Phase;
+      ruledata.minimum_trading_days = phaseSettings.minimum_trading_days,
+      ruledata.max_trading_days = phaseSettings.max_trading_days,
+      ruledata.max_daily_currency = botInfo.data.max_daily_currency.toString(),
+      ruledata.max_total_currency = botInfo.data.max_total_currency.toString(),
+      ruledata.starting_daily_equity = phaseSettings.starting_daily_equity,
+      ruledata.phase = botInfo.data.Phase;
+      ruledata.challenge_won = botInfo.data.challenge_won;
+      ruledata.challenge_ends = botInfo.data.challenge_ends;
+      ruledata.daily_kod = botInfo.data.daily_kod;
       console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ ruledata:", ruledata)
       const response = await axios.post(url, ruledata);
       console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ response:", response.data);
@@ -457,10 +460,10 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
         const checkDailyKOD = await this.dailyKOD(dataJson);
         const checkTotalKOD = await this.TotalKOD(dataJson);
         if (checkDailyKOD) {
-          console.log("User failed daily KOD ", checkDailyKOD)
+          console.log(" ❌ User failed daily KOD ", checkDailyKOD)
         }
         else if(checkTotalKOD){
-          console.log("User failed total KOD ", checkTotalKOD)
+          console.log(" ❌ User failed total KOD ", checkTotalKOD)
         }
       }
       else {
@@ -470,7 +473,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
 
     }
     catch (error) {
-
+    console.log("🚀 ~ BaseEvaluationService ~ checkRules ~ error:", error)
     }
   }
   async dailyKOD(req) {
@@ -554,6 +557,19 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
     }
     catch (error) {
       console.log("🚀 ~ BaseEvaluationService ~ getCurrentEquity ~ error:", error)
+    }
+  }
+  async sendDailyKOD(botInfo:Job){
+    try{
+      botInfo.data.request_type = "DailyKOD";
+      botInfo.data.status = "Failed";
+      botInfo.data.challenge_won = "false";
+      botInfo.data.challenge_ends = dayjs(Date.now()).format('YYYY-MM-DD');
+      botInfo.data.daily_kod = "true",
+      await this.rulesEvaluation(botInfo);
+    }
+    catch(error){
+      console.log("🚀 ~ BaseEvaluationService ~ sendDailyKOD ~ error:", error)
     }
   }
   async stopChallenge(botInfo:Job){
