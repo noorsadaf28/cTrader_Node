@@ -1,7 +1,7 @@
 import { Job } from "bull";
 import { PhaseSettings } from "src/data/rulesData";
 import { BaseBotProcess } from "src/services/baseBotprocess.service";
-
+import * as dayjs from 'dayjs';
 export class EvaluationBotProcess extends BaseBotProcess{
     
     async startChallenge(botInfo:Job) {
@@ -43,6 +43,8 @@ export class EvaluationBotProcess extends BaseBotProcess{
             botInfo.data.status = "Active";
             botInfo.data.request_type = "OnInit";
             botInfo.data.accountId = botInfo.data.traderLogin;
+            botInfo.data.challenge_begins = dayjs(Date.now()).format('YYYY-MM-DD');
+            botInfo.data.daily_kod = "true";
             const tempInfo = botInfo.data;
             botInfo.update(tempInfo);
             console.log("🚀 ~ EvaluationBotProcess ~ sendOnInit ~ botInfo:", botInfo.data)
@@ -75,6 +77,7 @@ export class EvaluationBotProcess extends BaseBotProcess{
             botInfo.data.status = "Won";
             botInfo.data.request_type = "Won";
             botInfo.data.accountId = botInfo.data.traderLogin;
+            botInfo.data.challenge_won = "false";
             const tempInfo = botInfo.data;
             botInfo.update(tempInfo);
             console.log("🚀 ~ EvaluationBotProcess ~ sendWon ~ botInfo:", botInfo.data)
