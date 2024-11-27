@@ -18,6 +18,8 @@ import { HttpService } from "@nestjs/axios";
 import * as dayjs from 'dayjs';
 import { json } from "stream/consumers";
 import { TradingPhases } from '../data/rulesData';
+import { IBotInterface } from "./Interfaces/IBot.interface";
+import { IOrderInterface } from "./Interfaces/IOrder.interface";
 // import { 
 //   ProtoSubscribeSpotQuotesReq, 
 //   ProtoSubscribeSpotQuotesRes, 
@@ -38,7 +40,8 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
   private readonly spotwareApiUrl: string;
   private readonly apiToken: string;
   private readonly MakeUrl:string;
-  constructor(@Inject('IAccountInterface') private readonly IAccountInterface: IAccountInterface) {
+  constructor(@Inject('IAccountInterface') private readonly IAccountInterface: IAccountInterface, 
+  @Inject('IBotInterface') private readonly IBotInterface: IBotInterface) {
     this.xanoEquityUrl = process.env.XANO_API_EQUITYURL;
     this.spotwareApiUrl = process.env.SPOTWARE_API_URL;
     this.apiToken = process.env.SPOTWARE_API_TOKEN;
@@ -396,6 +399,8 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       ruledata.challenge_won = botInfo.data.challenge_won;
       ruledata.challenge_ends = botInfo.data.challenge_ends;
       ruledata.daily_kod = botInfo.data.daily_kod;
+      ruledata.total_kod = botInfo.data.total_kod;
+      ruledata.challenge_begins = botInfo.data.challenge_begins;
       console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ ruledata:", ruledata)
       const response = await axios.post(url, ruledata);
       console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ response:", response.data);
@@ -470,9 +475,9 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
               const maxTotalCurrency = parseInt(this.botInfo.data.max_total_currency);
               console.debug("Max total currency:", maxTotalCurrency);
   
-              const initial_balance = parseInt(this.botInfo.data.initial_balance);
+              const initial_balance = parseInt(this.botInfo.data.Initial_balance);
               console.debug("Initial balance fetched:", initial_balance);
-  
+              const profitCurrency = parseInt(this.botInfo.data.profitCurrency);
               // Debug log to check the botInfo data
               // console.log("Bot Info Data:", JSON.stringify(this.botInfo.data, null, 2));
   
@@ -490,6 +495,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
                   maxDailyCurrency,
                   maxTotalCurrency,
                   initial_balance,
+                  profitCurrency
               };
               console.debug("Constructed dataJson:", JSON.stringify(dataJson, null, 2));
   
@@ -499,25 +505,28 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
   
               const checkTotalKOD = await this.TotalKOD(dataJson);
               console.debug("Total KOD check result:", checkTotalKOD);
-  
-              const checkConsistencyKOD = await this.ConsistencyKOD(this.botInfo);
-              console.debug("Consistency KOD check result:", checkConsistencyKOD);
+              
+              const checkWonEvent = await this.CheckWonKOD(dataJson);
+              console.debug("Won check result:", checkTotalKOD);
+              //const tradingDays = await this.t
+              // const checkConsistencyKOD = await this.ConsistencyKOD(this.botInfo);
+              // console.debug("Consistency KOD check result:", checkConsistencyKOD);
   
               // Handle KOD checks
               if (checkDailyKOD) {
                   console.warn("❌ User failed Daily KOD:", checkDailyKOD);
                   
                   await this.sendDailyKOD(this.botInfo);
-
-
-                  
               } else if (checkTotalKOD) {
                   console.warn("❌ User failed Total KOD:", checkTotalKOD);
-                  await this.stopChallenge(this.botInfo);
-              } else if (checkConsistencyKOD) {
-                  console.warn("❌ User failed Consistency KOD:", checkConsistencyKOD);
-                  await this.stopChallenge(this.botInfo);
-              } else {
+                  await this.sendTotalKOD(this.botInfo);
+              } 
+              else if(this.botInfo.data.tradingDays >= this.botInfo.data.minimum_trading_days && checkWonEvent){
+                console.warn("Check Won");
+                await this.sendWon(this.botInfo)
+                //this.CheckWon(this.botInfo.data.accountId, this.botInfo, )
+              }
+              else {
                   console.log("✅ All KOD checks passed.");
               }
           } else {
@@ -552,9 +561,26 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
 
     }
   }
+  async CheckWonKOD(req){
+    const result = req.currentEquity >= ( req.initial_balance + req.profitCurrency);
+    return result
+  }
+
+  async CheckWon(login, botInfo:Job) {
+    try {
+     //const data = await this..fetchOpenPositions(login, botInfo);
+     //if (data.openPositions){
+      this.sendWon(botInfo)
+     //}
+    }
+    catch (error) {
+      console.log("🚀 ~ BaseEvaluationService ~ dailyKOD ~ error:", error)
+
+    }
+  }
 
 
-async ConsistencyKOD(botInfo: Job): Promise<boolean> {
+async ConsistencyKOD(botInfo: Job, closedPosition) {
   // console.debug(`ConsistencyKOD started for botInfo: ${JSON.stringify(botInfo)}`);
 
     const login = botInfo.data.traderLogin;
@@ -574,27 +600,27 @@ async ConsistencyKOD(botInfo: Job): Promise<boolean> {
   
       console.info(`Account ${login} - Phase: ${currentPhase}, Profit Target: ${phaseProfitTarget}, Max Allowed Profit: ${maxAllowedProfit}`);
   
-      // Fetch closed positions
-      const now = new Date();
-      const to = now.toISOString();
-      const from = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
+      // // Fetch closed positions
+      // const now = new Date();
+      // const to = now.toISOString();
+      // const from = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
   
-      console.debug(`Fetching closed positions from ${from} to ${to}`);
+      // console.debug(`Fetching closed positions from ${from} to ${to}`);
   
-      const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/closedPositions`, {
-        headers: { Authorization: `Bearer ${this.apiToken}` },
-        params: { from, to, token: this.apiToken, login },
-      });
+      // const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/closedPositions`, {
+      //   headers: { Authorization: `Bearer ${this.apiToken}` },
+      //   params: { from, to, token: this.apiToken, login },
+      // });
   
-      if (response.status !== 200 || !response.data) {
-        console.error(`Failed to fetch closed positions for account ${login}. Status: ${response.status}`);
+      if (closedPosition.status !== 200 || !closedPosition.data) {
+        console.error(`Failed to fetch closed positions for account ${login}. Status: ${closedPosition.status}`);
         throw new Error(`Failed to fetch closed positions for account ${login}.`);
       }
   
-      console.debug(`Closed positions response: ${JSON.stringify(response.data)}`);
+      console.debug(`Closed positions response: ${JSON.stringify(closedPosition.data)}`);
   
          // Parse and evaluate the response
-    const closedPositions = response.data
+    const closedPositions = closedPosition.data
     .trim()
     .split("\n")
     .slice(1) // Skip headers
@@ -661,6 +687,7 @@ async ConsistencyKOD(botInfo: Job): Promise<boolean> {
       //   headers: { 'Content-Type': 'application/json' },
       // });
       console.log("🚀 ~ BaseEvaluationService ~ getTradingDays ~ prevDataResponse:", prevDataResponse)
+      return prevDataResponse.data;
     }
     catch (error) {
       console.log("🚀 ~ BaseEvaluationService ~ getTradingDays ~ error:", error)
@@ -708,7 +735,39 @@ async ConsistencyKOD(botInfo: Job): Promise<boolean> {
       botInfo.data.challenge_won = "false";
       botInfo.data.challenge_ends = dayjs(Date.now()).format('YYYY-MM-DD');
       botInfo.data.daily_kod = "true",
+      botInfo.data.total_kod = "false"
       await this.rulesEvaluation(botInfo);
+      await this.stopChallenge(botInfo)
+    }
+    catch(error){
+      console.log("🚀 ~ BaseEvaluationService ~ sendDailyKOD ~ error:", error)
+    }
+  }
+  async sendTotalKOD(botInfo:Job){
+    try{
+      botInfo.data.request_type = "TotalKOD";
+      botInfo.data.status = "Failed";
+      botInfo.data.challenge_won = "false";
+      botInfo.data.challenge_ends = dayjs(Date.now()).format('YYYY-MM-DD');
+      botInfo.data.daily_kod = "false",
+      botInfo.data.total_kod = "true"
+      await this.rulesEvaluation(botInfo);
+      await this.stopChallenge(botInfo)
+    }
+    catch(error){
+      console.log("🚀 ~ BaseEvaluationService ~ sendDailyKOD ~ error:", error)
+    }
+  }
+  async sendWon(botInfo:Job){
+    try{
+      botInfo.data.request_type = "Won";
+      botInfo.data.status = "Won";
+      botInfo.data.challenge_won = "true";
+      botInfo.data.challenge_ends = dayjs(Date.now()).format('YYYY-MM-DD');
+      botInfo.data.daily_kod = "false",
+      botInfo.data.total_kod = "false"
+      await this.rulesEvaluation(botInfo);
+      await this.stopChallenge(botInfo)
     }
     catch(error){
       console.log("🚀 ~ BaseEvaluationService ~ sendDailyKOD ~ error:", error)
@@ -716,7 +775,11 @@ async ConsistencyKOD(botInfo: Job): Promise<boolean> {
   }
   async stopChallenge(botInfo:Job){
     try{
-
+      botInfo.data.running = false;
+      const temp = botInfo.data;
+      botInfo.data.update(temp);
+      console.log(" :⛔️:️ Bot Stopped")
+      await this.IBotInterface.stopBot(botInfo)
     }
     catch(error) {
     console.log("🚀 ~ BaseEvaluationService ~ stopChallenge ~ error:", error)

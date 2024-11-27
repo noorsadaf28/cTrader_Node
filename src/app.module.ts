@@ -5,9 +5,6 @@ import { BullModule } from '@nestjs/bull';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { AccountModule } from './module/account.module';
-import { OrderModule } from './module/order.module';
-import { DailyEquityModule } from './module/dailyEquity.module';
 import { AppLogger } from './services/loggers/winston.config';
 
 import { CtraderAccountService } from './services/exchange/cTrader/account.service';
@@ -28,16 +25,19 @@ import { DailyEquityController } from './controllers/equity.controller';
 import { EvaluationBotProcess } from './services/botProcess/evaluationBot.process';
 import { activeBotQueue } from 'config/constant';
 import { BaseOrderService } from './services/baseOrder.service';
+import { DailyEquityService } from './services/exchange/cTrader/daily_equity.service';
+import { HttpModule, HttpService } from '@nestjs/axios';
 
 @Module({
   imports: [
+    HttpModule,
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
     }),
     ScheduleModule.forRoot(),
-    AccountModule,
-    DailyEquityModule,
+    //AccountModule,
+    //DailyEquityModule,
     BullModule.forRoot({
       redis: {
         host: 'localhost',
@@ -97,6 +97,7 @@ import { BaseOrderService } from './services/baseOrder.service';
     // },
     SpotwareService,
     ConfigService,
+    DailyEquityService
   ],
 })
 export class AppModule {
