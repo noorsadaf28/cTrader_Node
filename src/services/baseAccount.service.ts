@@ -194,7 +194,8 @@ export abstract class BaseAccountService implements IAccountInterface {
       const depositCurrency = req.Currency;
       const groupName = process.env.groupName;
       const hashedPassword = process.env.hashedPassword;
-      const leverageInCents = req.Leverage;
+      //const leverageInCents = req.Leverage;
+      const leverageInCents = await this.calculateLeverageInCents(req.Leverage);
       const totalMarginCalculationType = process.env.margingType;
       const createTrader = {
         accessRights, accountType, balance, brokerName, depositCurrency, groupName, hashedPassword, leverageInCents, totalMarginCalculationType
@@ -322,4 +323,21 @@ async UpdateAccountBalance(req) {
     console.error("Error updating account:", error.response?.data || error.message);
   }
  }
+ async calculateLeverageInCents(ratio:string){
+  try{
+    //Validate the input ratio format
+  const match = ratio.match(/^1:(\d+)$/);
+  if (!match) {
+    throw new Error('Invalid ratio format. Expected format is 1:X (e.g., 1:100).');
+  }
+
+  const leverageValue = parseInt(match[1], 10);
+  console.log("🚀 ~ BaseAccountService ~ calculateLeverageInCents ~ leverageValue:", leverageValue)
+  return leverageValue * 100; // Multiply the leverage value by 100 to get leverageInCents
+  }
+  catch(error){
+    console.log("🚀 ~ BaseAccountService ~ calculateLeverageInCents ~ error:", error)
+  }
+}
+
 }

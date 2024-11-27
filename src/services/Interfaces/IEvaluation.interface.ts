@@ -11,4 +11,5 @@ export interface IEvaluationInterface{
     dailyKOD(req)
     symbolList (symbols)
     getDailyEquity(accountId)
+    ConsistencyKOD(botInfo, closedPosition)
 }

@@ -1,4 +1,4 @@
-import { Injectable, Logger, HttpException, HttpStatus } from '@nestjs/common';
+import { Injectable, Logger, HttpException, HttpStatus, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import axios from 'axios';
@@ -7,6 +7,7 @@ import { IOrderInterface } from './Interfaces/IOrder.interface';
 import {Job} from 'bull';
 import { tmpdir } from 'os';
 import { HttpService } from '@nestjs/axios';
+import { IEvaluationInterface } from './Interfaces/IEvaluation.interface';
 
 @Injectable()
 export class BaseOrderService implements IOrderInterface {
@@ -16,7 +17,8 @@ export class BaseOrderService implements IOrderInterface {
   private readonly xanoEquityUrl: string;
   private readonly logger = new Logger(BaseOrderService.name);
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(private readonly configService: ConfigService, 
+    @Inject('IEvaluationInterface') private readonly IEvaluationInterface: IEvaluationInterface) {
     this.xanoApiUrl = process.env.XANO_API_URL;
     this.spotwareApiUrl = configService.get<string>('SPOTWARE_API_URL');
     this.apiToken = configService.get<string>('SPOTWARE_API_TOKEN');
@@ -52,7 +54,7 @@ async pollPositions(botInfo: Job) {
   try {
     const openPositionsData = await this.fetchOpenPositions(login, botInfo);
     // Fetch and update closed positions
-    const closedPositions = await this.fetchClosedPositions(login);
+    const closedPositions = await this.fetchClosedPositions(login, botInfo);
     await this.updateXanoWithPositions(openPositionsData.openPositions, closedPositions);
 
     return { message: `Polling started for account ${login}` };
@@ -84,7 +86,6 @@ async pollPositions(botInfo: Job) {
         // Extract the date from the openTimestamp and add it to the tradingDaysSet
         const openDate = new Date(position.openTimestamp).toISOString().split('T')[0]; // Extract date part
         tradingDaysSet.add(openDate);
-        tradingDays = tradingDaysSet.size;
         if(botInfo != undefined){
           console.log("here-----------------")
             // Add symbol to botInfo if not already included
@@ -97,6 +98,12 @@ async pollPositions(botInfo: Job) {
           botInfo.update(tempData);
         }
       }
+      if(tradingDaysSet.size != undefined){
+        tradingDays = tradingDaysSet.size;
+      }
+      else{
+        tradingDays = 0;
+      }
       this.logger.log(`Trading days for login ${login}: ${tradingDays}`);
 
       return {openPositions, tradingDays};
@@ -106,7 +113,7 @@ async pollPositions(botInfo: Job) {
     }
   }
 
-  private async fetchClosedPositions(login: number) {
+  private async fetchClosedPositions(login: number, botInfo:Job) {
     const now = new Date();
     const to = now.toISOString();
     const from = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
@@ -117,6 +124,11 @@ async pollPositions(botInfo: Job) {
         params: { from, to, token: this.apiToken, login },
       });
       this.logger.log('Fetched closed positions from Spotware');
+      if (response.status !== 200 || !response.data) {
+        console.error(`Failed to fetch closed positions for account ${login}. Status: ${response.status}`);
+        throw new Error(`Failed to fetch closed positions for account ${login}.`);
+      }
+      await this.IEvaluationInterface.ConsistencyKOD(botInfo,response)
       return this.parseClosedPositionsCsv(response.data);
     } catch (error) {
       this.logger.error(`Failed to fetch closed positions: ${error.message}`);
