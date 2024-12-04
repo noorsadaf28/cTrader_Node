@@ -115,7 +115,7 @@ export class EvaluationBotProcess extends BaseBotProcess {
                 default:
                     console.log(`User has completed all phases. Current phase: ${botInfo.data.phase}`);
                     await this.IEvaluationInterface.rulesEvaluation(botInfo);
-                    await this.stopChallenge(botInfo);
+                    // await this.stopChallenge(botInfo);
                     return;
             }
 
@@ -127,25 +127,13 @@ export class EvaluationBotProcess extends BaseBotProcess {
                 console.log(`User has reached the FUNDED phase`);
                 botInfo.data.phase = "FUNDED";
                 await this.startChallenge(botInfo); // Restart challenge for funded phase
-                await this.stopChallenge(botInfo); // Finalize
+                // await this.stopChallenge(botInfo); // Finalize
             }
         } catch (error) {
             console.log("🚀 ~ BaseBotProcess ~ sendWon ~ error:", error);
         }
     }
-    async stopChallenge(botInfo: Job) {
-        try {
-            botInfo.data.running = false;
-            const temp = botInfo.data;
-            botInfo.data.update(temp);
-            console.log(" :⛔️:️ Bot Stopped")
-            await this.IBotInterface.stopBot(botInfo)
-        }
-        catch (error) {
-            console.log("🚀 ~ BaseEvaluationService ~ stopChallenge ~ error:", error)
-        }
-    }
-    async sendDailyKOD(botInfo:Job){
+        async sendDailyKOD(botInfo:Job){
         try{
           botInfo.data.request_type = "DailyKOD";
           botInfo.data.status = "Failed";
@@ -154,7 +142,7 @@ export class EvaluationBotProcess extends BaseBotProcess {
           botInfo.data.daily_kod = "true",
           botInfo.data.total_kod = "false"
           await this.IEvaluationInterface.rulesEvaluation(botInfo);
-          await this.stopChallenge(botInfo)
+        //   await this.stopChallenge(botInfo)
         }
         catch(error){
           console.log("🚀 ~ BaseEvaluationService ~ sendDailyKOD ~ error:", error)
@@ -171,7 +159,7 @@ export class EvaluationBotProcess extends BaseBotProcess {
             // const tempInfo = botInfo.data;
             // botInfo.update(tempInfo);
             // console.log("🚀 ~ EvaluationBotProcess ~ sendWon ~ botInfo:", botInfo.data)
-            await this.stopChallenge(botInfo); // Finalize
+            // await this.stopChallenge(botInfo); // Finalize
 
             this.IEvaluationInterface.rulesEvaluation(botInfo)
         }
