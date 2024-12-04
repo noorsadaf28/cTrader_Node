@@ -626,12 +626,11 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       }
   
       const phaseProfitTarget = parseFloat(phaseSettings.profit_target);
-      const maxAllowedProfit = phaseProfitTarget * botInfo.data.consistencyPercent; // 25% of the profit target
+      const maxAllowedProfit = botInfo.data.profitCurrency * botInfo.data.consistencyPercent; // 25% of the profit target
       console.log("🚀 ~ BaseEvaluationService ~ ConsistencyKOD ~ maxAllowedProfit:", maxAllowedProfit)
-      const maxAllowedProfitTarget = (maxAllowedProfit*botInfo.data.initial_balance)*100;
-      console.log("🚀 ~ BaseEvaluationService ~ ConsistencyKOD ~ maxAllowedProfitTarget:", maxAllowedProfitTarget)
+      //const maxAllowedProfitTarget = (maxAllowedProfit*botInfo.data.Initial_balance)*100;
   
-      console.info(`Account ${login} - Phase: ${currentPhase}, Profit Target: ${phaseProfitTarget}, Max Allowed Profit: ${maxAllowedProfit}`);
+      console.info(`Account ${login} - Phase: ${currentPhase}, Profit Target: ${botInfo.data.profitCurrency}, Max Allowed Profit per trade: ${maxAllowedProfit}`);
   
       // // Fetch closed positions
       // const now = new Date();
@@ -684,7 +683,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
   const isConsistencyViolated = closedPositions.some((trade) => {
     
     console.info(`Account ${login} - Analyzing trade ${trade.positionId} with PnL: ${trade.pnl}, Max Allowed: ${maxAllowedProfit}`);
-    return trade.pnl > maxAllowedProfitTarget;
+    return trade.pnl > maxAllowedProfit;
     // const dataJson = {
     //   accounts: [{
     //     id: login,
