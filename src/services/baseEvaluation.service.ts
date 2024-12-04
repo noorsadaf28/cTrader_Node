@@ -181,20 +181,39 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
     }
   }
 
-  async unsubscribeFromSpotQuotes(subscriptionId: string) {
+  async unsubscribeFromSpotQuotes(symbols) {
     try {
+      const symbolIds = await this.symbolList(symbols);
       const UnsubscribeSpotQuotesReq = this.root.lookupType('ProtoUnsubscribeSpotQuotesReq');
-      const message = UnsubscribeSpotQuotesReq.create({ subscriptionId });
+      const ProtoPayloadType = this.root.lookupEnum("ProtoCSPayloadType");
+      const ProtoMessage = this.root2.lookupType("ProtoMessage");
+      const authPayload = UnsubscribeSpotQuotesReq.create({
+        symbolId: symbolIds,
+      });
+      const payloadBuffer = UnsubscribeSpotQuotesReq.encode(authPayload).finish();
 
-      // Serialize the message and convert Uint8Array to Buffer
-      const messageBuffer = Buffer.from(UnsubscribeSpotQuotesReq.encode(message).finish());
 
-      // Prefix the message with its length for the server
+      // Create a ProtoMessage wrapping the subscription request
+      const message = ProtoMessage.create({
+        payloadType: ProtoPayloadType.values.PROTO_UNSUBSCRIBE_SPOT_QUOTES_REQ,
+        payload: payloadBuffer,
+      });
+
+      const messageBuffer = Buffer.from(ProtoMessage.encode(message).finish());
       const fullMessage = this.prefixMessageWithLength(messageBuffer);
 
-      // Send the message over the socket
-      this.client.write(fullMessage);
-      console.log(`Unsubscribed from subscription ID: ${subscriptionId}`);
+      // Send subscription request
+      const writeResult = this.client.write(fullMessage);
+      console.log("Unsubscribed from symbol IDs:", symbolIds);
+      // Serialize the message and convert Uint8Array to Buffer
+      // const messageBuffer = Buffer.from(UnsubscribeSpotQuotesReq.encode(message).finish());
+
+      // // Prefix the message with its length for the server
+      // const fullMessage = this.prefixMessageWithLength(messageBuffer);
+
+      // // Send the message over the socket
+      // this.client.write(fullMessage);
+      // console.log(`Unsubscribed from subscription ID: ${subscriptionId}`);
       return { message: "Unsubscription request sent" };
     } catch (error) {
       console.error('Error unsubscribing from spot quotes:', error);
@@ -454,12 +473,22 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
   async checkRules(symbolId: string) {
      
       try {
+        const isBotActive = await this.IBotInterface.checkBotStatus(this.botInfo);
+            console.log("🚀 ~ isBotActive:", isBotActive)
+
+            if (!isBotActive) {
+                await this.unsubscribeFromSpotQuotes(this.botInfo.data.symbolsSubscribed)
+                console.log(" ⛔️ Evaluation Stopped")
+                //this.botInfo.data = [];
+                return { response: ` ❌ Bot Not Present . . . ` }
+            }
           console.debug("checkRules started for symbolId:", symbolId);
   
           const symbolName = await this.symbolname(symbolId);
           console.debug("Fetched symbolName:", symbolName);
   
           if (this.botInfo.data.symbolsSubscribed.includes(symbolName)) {
+            
               console.log("✅ Symbol present for user.");
   
               // Fetch relevant data
@@ -775,6 +804,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
   }
   async stopChallenge(botInfo:Job){
     try{
+      this.unsubscribeFromSpotQuotes(botInfo.data.symbolIds)
       botInfo.data.running = false;
       const temp = botInfo.data;
       botInfo.data.update(temp);

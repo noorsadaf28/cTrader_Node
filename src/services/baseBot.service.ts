@@ -5,6 +5,7 @@ import { activeBotQueue } from "config/constant";
 import { Job } from "bull";
 import { Inject } from "@nestjs/common";
 import { IAccountInterface } from "./Interfaces/IAccount.interface";
+import { IEvaluationInterface } from "./Interfaces/IEvaluation.interface";
 
 export abstract class BaseBotService implements IBotInterface{
     private runningBotList = []
@@ -43,43 +44,66 @@ async RunBot(botInfo){
     }
 
 }
-async stopBot(req){
-    try{
-        
-        const jobs = await this.bot_queue.getJobs(['waiting', 'active', 'delayed', 'completed', 'failed']);
-        for (const job of jobs) {
-          const jobData = await job.data;
-          //console.log("-------------jobData---------",jobData)
+async stopBot(body) {
+  console.log("body",body);
+  
+  try {
+      const { email } = body;
 
-         if (jobData.email === req.email) {
-            console.log("🔔  ~ found bot_id @StopBot:", jobData)
+      if (!email) {
+          return { response: 'Failure', message: 'Please enter a valid email!' };
+      }
 
-            await job.moveToCompleted('jobCompleted . . .', true);
-            await job.remove();
-            // removing botID and bot_unique_id in :Active botList[] 
-            //const updatedBotList = await this.runningBotList.filter(bot => bot.bot_id !== bot_id)
-            //this.runningBotList = updatedBotList
-            //console.log("🚀 ~ Updated ~ Active botList:", this.runningBotList)
+      const jobs = await this.bot_queue.getJobs(['waiting', 'active', 'delayed', 'completed', 'failed']);
 
-            //jobData.running = false;
-            //await job.update({ running: false })
-            //console.log("Job data of bot_id --------------------------------------: ", jobData)
-            return {
-              response: 'Success',
-              message: `Bot with email: ${jobData.email} has been successfully removed.`,
-            };
+      // Loop through each job to find the matching bot_id and unique_id
+      for (const job of jobs) {
+          const jobData = job.data; // Accessing job data directly
+
+          if (jobData.email === email) {
+              console.log("🔔  ~ found bot_id @StopBot:", jobData.email);
+              jobData.running = false;
+              const temp = jobData;
+              job.update(temp);
+              //this.unsubscribeFromSpotQuotes(jobData.symbolIds)
+              // Check if the job is in the 'active' state before attempting to move it
+              const state = await job.getState();
+              console.log("🚀 ~ BaseBotService ~ stopBot ~ state:", state)
+              if (state === 'active') {
+                  console.log("🚀 ~ Attempting to move job to completed...");
+                  await job.moveToCompleted('jobCompleted . . .', true);
+                  console.log("🚀 ~ Job moved to completed successfully.");
+              } else {
+                  console.error(`Job is not in an active state (current state: ${state}), cannot move to completed.`);
+              }
+
+              await job.remove();
+              console.log("🚀 ~ Job removed successfully.");
+              console.log("🛑 ~ BOT STOPPED");
+              
+              // Update the running bot list
+              this.runningBotList = this.runningBotList.filter(bot => bot.email !== email);
+              console.log("🚀 ~ Updated ~ Active botList:", this.runningBotList);
+
+              return {
+                  response: 'Success',
+                  message: `Bot with email: ${email} has been successfully removed.`,
+              };
           }
-        }
+      }
 
-        return {
+      return {
           response: 'Failure',
-          message: `No active bot found with ID:`,
-        };
-    //console.log("🚀~ bot_id to delete @StopBot :", body.bot_id);
-    }
-    catch(error){
-    console.log("🚀 ~ BaseBotService ~ stopBot ~ error:", error)
-    }
+          message: `No active bot found with email: ${email}.`,
+      };
+  } catch (error) {
+      console.error('Error in stopBot function:', error);
+
+      return {
+          response: 'Failure',
+          message: 'An error occurred while trying to stop the bot.',
+      };
+  }
 }
 async stopAllBots() {
     try {
@@ -135,4 +159,38 @@ async stopAllBots() {
     console.log("🚀 ~ BaseBotService ~ ActiveBotIds ~ error:", error)
     }
   }
+  async checkBotStatus(botInfo: Job) {
+    try{
+      const { email } = botInfo.data;
+      //console.log("🚀 ~checkBotStatus  ~ bot_id:", bot_id)
+  
+      const jobs_ = await this.bot_queue.getJobs(['active']['completed']);
+      let isActive = true;
+  
+      if (jobs_) {
+        for (const job of jobs_) {
+          //console.log("🚀 ~ BaseBotServices ~ checkBotStatus ~ job:", job)
+  
+          if (job.data.email == email) {
+            
+            //console.log(' this id is present @checkBotStatus . . . . .', job.data)
+            return true;
+          }
+        }
+  
+      }
+      // console.log(` @checkBotStatus  : [${bot_id}] not present . . . . . .`)
+      console.log(`@checkBotStatus: [${email}] not present `);
+      console.log(`❗️ No Bot Present with email ${email} `);
+      // console.log(`. . . . .No Bot Present with id  ${bot_id} . . . . . .`)
+        isActive = false
+        return isActive;
+    }
+    catch(error){
+    console.log("🚀 ~ BaseBotService ~ checkBotStatus ~ error:", error)
+    }
+    
+
+  }
+  
 }

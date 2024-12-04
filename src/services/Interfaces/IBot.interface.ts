@@ -3,4 +3,5 @@ export interface IBotInterface{
     stopBot(botInfo)
     stopAllBots()
     ActiveBotIds()
+    checkBotStatus(botInfo)
 }

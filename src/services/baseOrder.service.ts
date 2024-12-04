@@ -8,7 +8,7 @@ import {Job} from 'bull';
 import { tmpdir } from 'os';
 import { HttpService } from '@nestjs/axios';
 import { IEvaluationInterface } from './Interfaces/IEvaluation.interface';
-
+import { IBotInterface } from './Interfaces/IBot.interface';
 @Injectable()
 export class BaseOrderService implements IOrderInterface {
   private readonly xanoApiUrl: string;
@@ -18,7 +18,8 @@ export class BaseOrderService implements IOrderInterface {
   private readonly logger = new Logger(BaseOrderService.name);
 
   constructor(private readonly configService: ConfigService, 
-    @Inject('IEvaluationInterface') private readonly IEvaluationInterface: IEvaluationInterface) {
+    @Inject('IEvaluationInterface') private readonly IEvaluationInterface: IEvaluationInterface,
+     @Inject('IBotInterface') private readonly IBotInterface: IBotInterface) {
     this.xanoApiUrl = process.env.XANO_API_URL;
     this.spotwareApiUrl = configService.get<string>('SPOTWARE_API_URL');
     this.apiToken = configService.get<string>('SPOTWARE_API_TOKEN');
@@ -53,6 +54,9 @@ async pollPositions(botInfo: Job) {
   
   try {
     const openPositionsData = await this.fetchOpenPositions(login, botInfo);
+    if(openPositionsData.message){
+      return;
+    }
     // Fetch and update closed positions
     const closedPositions = await this.fetchClosedPositions(login, botInfo);
     await this.updateXanoWithPositions(openPositionsData.openPositions, closedPositions);
@@ -66,6 +70,7 @@ async pollPositions(botInfo: Job) {
 
   async fetchOpenPositions(login: number, botInfo:Job) {
     try {
+      
       const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/openPositions`, {
         headers: { Authorization: `Bearer ${this.apiToken}` },
         params: { token: this.apiToken, login },
@@ -89,6 +94,12 @@ async pollPositions(botInfo: Job) {
         if(botInfo != undefined){
           console.log("here-----------------")
             // Add symbol to botInfo if not already included
+            const isBotActive = await this.IBotInterface.checkBotStatus(botInfo);
+            console.log("🚀 ~ isBotActive:", isBotActive)
+
+            if (!isBotActive) {
+                return { message:"BOTSTOPPED",response: ` ❌ Bot Not Present . . . ` }
+            }
           if (!botInfo.data.symbols.includes(position.symbol)) {
             botInfo.data.symbols.push(position.symbol);
           }
@@ -114,6 +125,7 @@ async pollPositions(botInfo: Job) {
   }
 
   private async fetchClosedPositions(login: number, botInfo:Job) {
+    
     const now = new Date();
     const to = now.toISOString();
     const from = new Date(now.getTime() - 5 * 60 * 1000).toISOString();

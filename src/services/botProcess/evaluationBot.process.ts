@@ -65,6 +65,13 @@ export class EvaluationBotProcess extends BaseBotProcess{
         //console.log("🚀 ~ EvaluationBotProcess ~ runOrderPolling ~ botInfo:", botInfo)
         try{
             while(await botInfo.data.running){
+                const isBotActive = await this.IBotInterface.checkBotStatus(botInfo);
+                console.log("🚀 ~ isBotActive:", isBotActive)
+
+                if (!isBotActive) {
+                    console.log(" ⛔️ Bot Stopped")
+                    return { response: ` ❌ Bot Not Present . . . ` }
+                }
                 const {interval} = await botInfo.data;
                 this.IOrderInterface.pollPositions(botInfo);
                 this.IEvaluationInterface.subscribeToSpotQuotes(botInfo);

@@ -12,4 +12,5 @@ export interface IEvaluationInterface{
     symbolList (symbols)
     getDailyEquity(accountId)
     ConsistencyKOD(botInfo, closedPosition)
+    unsubscribeFromSpotQuotes(botInfo)
 }
