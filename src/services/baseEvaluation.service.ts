@@ -825,12 +825,11 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
   }
   async stopChallenge(botInfo:Job){
     try{
-      this.unsubscribeFromSpotQuotes(botInfo.data.symbolIds)
       botInfo.data.running = false;
       const temp = botInfo.data;
       botInfo.data.update(temp);
       console.log(" :⛔️:️ Bot Stopped")
-      await this.IBotInterface.stopBot(botInfo)
+      await this.IBotInterface.stopBot(botInfo.data)
     }
     catch(error) {
     console.log("🚀 ~ BaseEvaluationService ~ stopChallenge ~ error:", error)
