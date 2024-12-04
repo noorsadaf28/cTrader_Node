@@ -38,4 +38,14 @@ export class BotController {
             
         }
     }
+    @HttpCode(HttpStatus.OK)
+    @Post('stopBot')
+    async StopBot(@Body() Body){
+        try{
+            return await this.IBotInterface.stopBot(Body)
+        }
+        catch(error) {
+        console.log("🚀 ~ BotController ~ StopBot ~ error:", error)
+        }
+    }
 }

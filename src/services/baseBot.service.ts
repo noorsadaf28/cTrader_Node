@@ -43,7 +43,7 @@ async RunBot(botInfo){
     }
 
 }
-async stopBot(botInfo:Job){
+async stopBot(req){
     try{
         
         const jobs = await this.bot_queue.getJobs(['waiting', 'active', 'delayed', 'completed', 'failed']);
@@ -51,7 +51,7 @@ async stopBot(botInfo:Job){
           const jobData = await job.data;
           //console.log("-------------jobData---------",jobData)
 
-         if (jobData.email === botInfo.data.email) {
+         if (jobData.email === req.email) {
             console.log("🔔  ~ found bot_id @StopBot:", jobData)
 
             await job.moveToCompleted('jobCompleted . . .', true);
