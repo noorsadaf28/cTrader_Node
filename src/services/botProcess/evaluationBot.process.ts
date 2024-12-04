@@ -21,6 +21,7 @@ export class EvaluationBotProcess extends BaseBotProcess {
                 const connectedPhaseData = Object.assign({}, botData, phaseSettings);
                 connectedPhaseData.max_daily_currency = parseInt(connectedPhaseData.Initial_balance) * (connectedPhaseData.max_daily_loss / 100)
                 connectedPhaseData.max_total_currency = parseInt(connectedPhaseData.Initial_balance) * (connectedPhaseData.max_loss / 100)
+                connectedPhaseData.consistencyPercent = (parseInt(connectedPhaseData.consistency_value )/ 100)
                 connectedPhaseData.profitCurrency = parseInt(connectedPhaseData.Initial_balance) * (connectedPhaseData.profit_target / 100)
                 connectedPhaseData.challenge_begins = Date
                 const tempInfo = connectedPhaseData;
@@ -50,6 +51,7 @@ export class EvaluationBotProcess extends BaseBotProcess {
             botInfo.data.total_kod = "false";
             botInfo.data.challenge_won = "false";
             botInfo.data.challenge_ends = "";
+            botInfo.data.consistency_kod = "false";
             const tempInfo = botInfo.data;
             botInfo.update(tempInfo);
             console.log("🚀 ~ EvaluationBotProcess ~ sendOnInit ~ botInfo:", botInfo.data)

@@ -140,7 +140,12 @@ async pollPositions(botInfo: Job) {
         console.error(`Failed to fetch closed positions for account ${login}. Status: ${response.status}`);
         throw new Error(`Failed to fetch closed positions for account ${login}.`);
       }
-      await this.IEvaluationInterface.ConsistencyKOD(botInfo,response)
+      if(botInfo.data.Bot_version === "2"){
+        if(botInfo.data.phase === process.env.Phase_1 || botInfo.data.phase === process.env.Phase_2){
+          console.log("Consistency Enter")
+          await this.IEvaluationInterface.ConsistencyKOD(botInfo,response)
+        }
+      }
       return this.parseClosedPositionsCsv(response.data);
     } catch (error) {
       this.logger.error(`Failed to fetch closed positions: ${error.message}`);

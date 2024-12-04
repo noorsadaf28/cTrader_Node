@@ -420,6 +420,8 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       ruledata.daily_kod = botInfo.data.daily_kod;
       ruledata.total_kod = botInfo.data.total_kod;
       ruledata.challenge_begins = botInfo.data.challenge_begins;
+      ruledata.consistency_kod = botInfo.data.consistency_kod;
+      ruledata.consistency_value = botInfo.data.consistency_value;
       console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ ruledata:", ruledata)
       const response = await axios.post(url, ruledata);
       console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ response:", response.data);
@@ -624,8 +626,10 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       }
   
       const phaseProfitTarget = parseFloat(phaseSettings.profit_target);
-      const maxAllowedProfit = phaseProfitTarget * 0.25; // 25% of the profit target
+      const maxAllowedProfit = phaseProfitTarget * botInfo.data.consistencyPercent; // 25% of the profit target
+      console.log("🚀 ~ BaseEvaluationService ~ ConsistencyKOD ~ maxAllowedProfit:", maxAllowedProfit)
       const maxAllowedProfitTarget = (maxAllowedProfit*botInfo.data.initial_balance)*100;
+      console.log("🚀 ~ BaseEvaluationService ~ ConsistencyKOD ~ maxAllowedProfitTarget:", maxAllowedProfitTarget)
   
       console.info(`Account ${login} - Phase: ${currentPhase}, Profit Target: ${phaseProfitTarget}, Max Allowed Profit: ${maxAllowedProfit}`);
   
@@ -695,6 +699,8 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
 
   if (isConsistencyViolated) {
     console.warn(`❌ Consistency KOD violated for account ${login}`);
+    
+    this.sendConsistencyKOD(botInfo)
   } else {
     console.info(`✅ Consistency KOD passed for account ${login}`);
   }
@@ -780,6 +786,22 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       botInfo.data.challenge_ends = dayjs(Date.now()).format('YYYY-MM-DD');
       botInfo.data.daily_kod = "false",
       botInfo.data.total_kod = "true"
+      await this.rulesEvaluation(botInfo);
+      await this.stopChallenge(botInfo)
+    }
+    catch(error){
+      console.log("🚀 ~ BaseEvaluationService ~ sendDailyKOD ~ error:", error)
+    }
+  }
+  async sendConsistencyKOD(botInfo:Job){
+    try{
+      botInfo.data.request_type = "ConsistencyKOD";
+      botInfo.data.status = "Failed";
+      botInfo.data.challenge_won = "false";
+      botInfo.data.challenge_ends = dayjs(Date.now()).format('YYYY-MM-DD');
+      botInfo.data.daily_kod = "false",
+      botInfo.data.total_kod = "false",
+      botInfo.data.consistency_kod = "true"
       await this.rulesEvaluation(botInfo);
       await this.stopChallenge(botInfo)
     }

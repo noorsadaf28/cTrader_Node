@@ -32,7 +32,9 @@ export const PhaseSettings = {
       max_daily_currency: "",
       max_total_currency: "",
       starting_daily_equity: "",
-      leverageInCents: 200 // 1:2 leverage
+      leverageInCents: "" ,
+      consistency_kod:"",
+      consistency_value:""
   },
   [TradingPhases.PHASE_1]: {
       max_daily_loss: "4",
@@ -43,7 +45,9 @@ export const PhaseSettings = {
       max_daily_currency: "",
       max_total_currency: "",
       starting_daily_equity: "",
-      leverageInCents: 10000 // 1:100 leverage
+      leverageInCents: "", // 1:100 leverage
+      consistency_kod:"",
+      consistency_value:"25"
   },
   [TradingPhases.PHASE_2]: {
       max_daily_loss: "5",
@@ -54,7 +58,9 @@ export const PhaseSettings = {
       max_daily_currency: "",
       max_total_currency: "",
       starting_daily_equity: "",
-      leverageInCents: 10000 // 1:100 leverage
+      leverageInCents: "",// 1:100 leverage
+      consistency_kod:"",
+      consistency_value:"25"
   },
   [TradingPhases.FUNDED]: {
       max_daily_loss: "5",
@@ -65,6 +71,8 @@ export const PhaseSettings = {
       max_daily_currency: "",
       max_total_currency: "",
       starting_daily_equity: "",
-      leverageInCents: 3000 // 1:30 leverage
+      leverageInCents: "",// 1:30 leverage
+      consistency_kod:"",
+      consistency_value:""
   }
 };
