@@ -40,7 +40,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
   private readonly spotwareApiUrl: string;
   private readonly apiToken: string;
   private readonly MakeUrl:string;
-  constructor(@Inject('IAccountInterface') private readonly IAccountInterface: IAccountInterface, 
+  constructor(@Inject('IAccountInterface') private readonly IAccountInterface: IAccountInterface,
   @Inject('IBotInterface') private readonly IBotInterface: IBotInterface) {
     this.xanoEquityUrl = process.env.XANO_API_EQUITYURL;
     this.spotwareApiUrl = process.env.SPOTWARE_API_URL;
@@ -538,11 +538,11 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
               console.debug("Total KOD check result:", checkTotalKOD);
               
               const checkWonEvent = await this.CheckWonKOD(dataJson);
-              console.debug("Won check result:", checkTotalKOD);
+              console.debug("Won check result:", this.CheckWonKOD);
               //const tradingDays = await this.t
               // const checkConsistencyKOD = await this.ConsistencyKOD(this.botInfo);
               // console.debug("Consistency KOD check result:", checkConsistencyKOD);
-  
+  console.log("The following fields are here:", JSON.stringify)
               // Handle KOD checks
               if (checkDailyKOD) {
                   console.warn("❌ User failed Daily KOD:", checkDailyKOD);
@@ -552,10 +552,10 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
                   console.warn("❌ User failed Total KOD:", checkTotalKOD);
                   await this.sendTotalKOD(this.botInfo);
               } 
-              else if(this.botInfo.data.tradingDays >= this.botInfo.data.minimum_trading_days && checkWonEvent){
+              else if(checkWonEvent){
                 console.warn("Check Won");
                 await this.sendWon(this.botInfo)
-                //this.CheckWon(this.botInfo.data.accountId, this.botInfo, )
+                this.CheckWon(this.botInfo.data.accountId, this.botInfo, )
               }
               else {
                   console.log("✅ All KOD checks passed.");
@@ -572,8 +572,9 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
 
   async dailyKOD(req) {
     try {
+      const result1 = req.currentEquity - (req.startingDailyEquity - req.maxDailyCurrency)
       const result = req.currentEquity - (req.startingDailyEquity - req.maxDailyCurrency) < 0;
-      console.log("🚀 ~ BaseEvaluationService ~ dailyKOD ~ result:", result)
+      console.log("🚀 ~ BaseEvaluationService ~ dailyKOD ~ result:", result,result1)
       return result;
     }
     catch (error) {
@@ -588,12 +589,13 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       return result;
     }
     catch (error) {
-      console.log("🚀 ~ BaseEvaluationService ~ dailyKOD ~ error:", error)
+      console.log("🚀 ~ BaseEvaluationService ~ TotalKOD ~ error:", error)
 
     }
   }
   async CheckWonKOD(req){
     const result = req.currentEquity >= ( req.initial_balance + req.profitCurrency);
+    console.log("��� ~ BaseEvaluationService ~ CheckWonKOD ~ result:", result)
     return result
   }
 
@@ -605,7 +607,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
      //}
     }
     catch (error) {
-      console.log("🚀 ~ BaseEvaluationService ~ dailyKOD ~ error:", error)
+      console.log("🚀 ~ BaseEvaluationService ~ CheckWon ~ error:", error)
 
     }
   }
@@ -772,6 +774,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       botInfo.data.total_kod = "false"
       await this.rulesEvaluation(botInfo);
       await this.stopChallenge(botInfo)
+      botInfo.discard();
     }
     catch(error){
       console.log("🚀 ~ BaseEvaluationService ~ sendDailyKOD ~ error:", error)
@@ -787,9 +790,10 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       botInfo.data.total_kod = "true"
       await this.rulesEvaluation(botInfo);
       await this.stopChallenge(botInfo)
+      botInfo.discard();
     }
     catch(error){
-      console.log("🚀 ~ BaseEvaluationService ~ sendDailyKOD ~ error:", error)
+      console.log("🚀 ~ BaseEvaluationService ~ sendTotalKOD ~ error:", error)
     }
   }
   async sendConsistencyKOD(botInfo:Job){
@@ -802,12 +806,40 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       botInfo.data.total_kod = "false",
       botInfo.data.consistency_kod = "true"
       await this.rulesEvaluation(botInfo);
-      await this.stopChallenge(botInfo)
+      await this.stopChallenge(botInfo);
+      botInfo.discard();
     }
     catch(error){
-      console.log("🚀 ~ BaseEvaluationService ~ sendDailyKOD ~ error:", error)
+      console.log("🚀 ~ BaseEvaluationService ~ ConsistencyKOD ~ error:", error)
     }
   }
+  private async retainImportantData(botInfo: Job): Promise<void> {
+    // Define the fields to retain
+    const fieldsToRetain = [
+        "email",
+        "Initial_balance",
+        "Currency",
+        "Leverage",
+        "Challenge_type",
+        "preferredLanguage",
+        "ChallengeID",
+        "Phase"
+    ];
+
+    // Create a filtered object with only retained fields
+    const retainedData = Object.keys(botInfo.data)
+        .filter((key) => fieldsToRetain.includes(key))
+        .reduce((obj, key) => {
+            obj[key] = botInfo.data[key];
+            return obj;
+        }, {} as Record<string, any>);
+
+    // Update the job data with only retained fields
+    await botInfo.update(retainedData);
+
+    console.log("Retained data in job:", retainedData);
+}
+
   async sendWon(botInfo:Job){
     try{
       botInfo.data.request_type = "Won";
@@ -817,22 +849,85 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       botInfo.data.daily_kod = "false",
       botInfo.data.total_kod = "false"
       await this.rulesEvaluation(botInfo);
-      await this.stopChallenge(botInfo)
+      console.log(" !! BaseEvaluationService ~ SendWon ~ status:", botInfo);
+    
+      await this.retainImportantData(botInfo);
+      console.log(`Switching from ${botInfo.data.phase}`,botInfo.data.phase === process.env.Phase_1 );
+      let botPhase = botInfo.data.phase;
+      let nextPhase: string | undefined;
+
+      if (botInfo.data.phase === process.env.Phase_0) {
+          nextPhase = process.env.Phase_1;
+          botInfo.data.phase = nextPhase;
+
+      } else if (botInfo.data.phase === process.env.Phase_1) {
+        
+          nextPhase = process.env.Phase_2;
+          console.log("Next Phase",nextPhase)
+          botInfo.data.phase = nextPhase;
+          const temp=botInfo.data;
+          botInfo.update(temp);
+      } else if (botInfo.data.phase === process.env.Phase_2) {
+          nextPhase = "FUNDED";
+          botInfo.data.phase = nextPhase;
+      } else {
+          console.log(`User has completed all phases. Current phase: ${botInfo.data.phase}`);
+          await this.rulesEvaluation(botInfo);
+          await this.stopChallenge(botInfo);
+          return;
+      }
+      
+      // if (nextPhase !== "FUNDED") {
+      //     console.log(`Switching from ${botInfo.data.phase} to ${nextPhase}`);
+      //     botInfo.data.phase = nextPhase;
+      //     await this.switchToPhase2(botInfo);
+      // } else {
+      //     console.log(`User has reached the FUNDED phase`);
+      //     botInfo.data.phase = "FUNDED";
+      //     // await this.IBotProcessInterface.startChallenge(botInfo); // Restart challenge for funded phase
+        
+      //     await this.stopChallenge(botInfo); // Finalize
+      console.log(`Switching to ${nextPhase}`);
+
+      await this.IAccountInterface.createAccountWithCTID(botInfo.data);
+      
     }
     catch(error){
-      console.log("🚀 ~ BaseEvaluationService ~ sendDailyKOD ~ error:", error)
+      console.log("🚀 ~ BaseEvaluationService ~ sendWON~ error:", error)
     }
   }
-  async stopChallenge(botInfo:Job){
-    try{
+  async stopChallenge(botInfo: Job) {
+    try {
+      // Stop the bot
       botInfo.data.running = false;
       const temp = botInfo.data;
       botInfo.update(temp);
-      console.log(" :⛔️:️ Bot Stopped")
-      await this.IBotInterface.stopBot(botInfo.data)
-    }
-    catch(error) {
-    console.log("🚀 ~ BaseEvaluationService ~ stopChallenge ~ error:", error)
+      console.log("⛔️ Bot Stopped");
+  
+      // Use the trader login from botInfo
+      const traderLogin = botInfo.data.traderLogin; // Ensure traderLogin exists in botInfo.data
+      this.IAccountInterface.UpdateAccount(traderLogin);
+     
+  
+      // console.log(`✅ Access rights updated to NO_TRADING for trader ${traderLogin}`,response.data);;
+   
+  
+      // Additional bot stopping logic if required
+      await this.IBotInterface.stopBot(botInfo.data);
+    } catch (error) {
+      console.error("🚀 ~ BaseEvaluationService ~ stopChallenge ~ error:", error.response?.data || error.message);
     }
   }
+  async switchToPhase2(botInfo: Job) {
+    try {
+        botInfo.data.phase = process.env.Phase_2;
+        const tempData = botInfo.data;
+        botInfo.update(tempData);
+        console.log(`��� Switched to phase 2`);
+    }
+    catch (error) {
+        console.log("🚀 ~ EvaluationBotProcess ~ switchToPhase2 ~ error:", error)
+    }
+}
+  
 }

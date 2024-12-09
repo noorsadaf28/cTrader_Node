@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { IEvaluationInterface } from "./Interfaces/IEvaluation.interface";
 import { IOrderInterface } from "./Interfaces/IOrder.interface";
 
+
 @Processor(activeBotQueue)
 export abstract class BaseBotProcess implements IBotProcessInterface{
     public startTime;

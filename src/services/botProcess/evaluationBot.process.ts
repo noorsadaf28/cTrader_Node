@@ -91,9 +91,9 @@ export class EvaluationBotProcess extends BaseBotProcess {
             botInfo.data.status = "Won";
             botInfo.data.request_type = "Won";
             botInfo.data.accountId = botInfo.data.traderLogin;
-            // const tempInfo = botInfo.data;
-            // botInfo.update(tempInfo);
-            // console.log("🚀 ~ EvaluationBotProcess ~ sendWon ~ botInfo:", botInfo.data)
+            const tempInfo = botInfo.data;
+            botInfo.update(tempInfo);
+            console.log("🚀 ~ EvaluationBotProcess111111111 ~ sendWon ~ botInfo:", botInfo.data)
 
 
             botInfo.data.challenge_won = "true";
@@ -156,10 +156,8 @@ export class EvaluationBotProcess extends BaseBotProcess {
             botInfo.data.request_type = "TotalKOD";
             botInfo.data.daily_kod = "false";
             botInfo.data.accountId = botInfo.data.traderLogin;
-            // const tempInfo = botInfo.data;
-            // botInfo.update(tempInfo);
-            // console.log("🚀 ~ EvaluationBotProcess ~ sendWon ~ botInfo:", botInfo.data)
-            // await this.stopChallenge(botInfo); // Finalize
+   
+            
 
             this.IEvaluationInterface.rulesEvaluation(botInfo)
         }
