@@ -554,8 +554,8 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
               } 
               else if(checkWonEvent){
                 console.warn("Check Won");
-                await this.sendWon(this.botInfo)
-                this.CheckWon(this.botInfo.data.accountId, this.botInfo, )
+                //await this.sendWon(this.botInfo)
+                await this.CheckWon(this.botInfo.data.accountId, this.botInfo, )
               }
               else {
                   console.log("✅ All KOD checks passed.");
@@ -603,7 +603,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
     try {
      //const data = await this..fetchOpenPositions(login, botInfo);
      //if (data.openPositions){
-      this.sendWon(botInfo)
+      await this.sendWon(botInfo)
      //}
     }
     catch (error) {
@@ -713,22 +713,22 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
   return false; // Return false on error for safety
 }
 }
-  async getTradingDays() {
-    try {
-      const prevDataResponse = await axios.get(`${process.env.xanoEquityUrl}?account=${this.botInfo.data.accountId}`, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-      // const prevDataResponse = await this.httpService
-      // .get(`${process.env.xanoEquityUrl}?account=${this.botInfo.data.accountId}`, {
-      //   headers: { 'Content-Type': 'application/json' },
-      // });
-      console.log("🚀 ~ BaseEvaluationService ~ getTradingDays ~ prevDataResponse:", prevDataResponse)
-      return prevDataResponse.data;
-    }
-    catch (error) {
-      console.log("🚀 ~ BaseEvaluationService ~ getTradingDays ~ error:", error)
-    }
-  }
+  // async getTradingDays() {
+  //   try {
+  //     const prevDataResponse = await axios.get(`${process.env.xanoEquityUrl}?account=${this.botInfo.data.accountId}`, {
+  //       headers: { 'Content-Type': 'application/json' },
+  //     });
+  //     // const prevDataResponse = await this.httpService
+  //     // .get(`${process.env.xanoEquityUrl}?account=${this.botInfo.data.accountId}`, {
+  //     //   headers: { 'Content-Type': 'application/json' },
+  //     // });
+  //     console.log("🚀 ~ BaseEvaluationService ~ getTradingDays ~ prevDataResponse:", prevDataResponse)
+  //     return prevDataResponse.data;
+  //   }
+  //   catch (error) {
+  //     console.log("🚀 ~ BaseEvaluationService ~ getTradingDays ~ error:", error)
+  //   }
+  // }
   async getCurrentEquity(accountId) {
     try {
       const reqjson = {
@@ -773,8 +773,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       botInfo.data.daily_kod = "true",
       botInfo.data.total_kod = "false"
       await this.rulesEvaluation(botInfo);
-      await this.stopChallenge(botInfo)
-      botInfo.discard();
+      await this.IBotInterface.stopBot(botInfo.data.email);
     }
     catch(error){
       console.log("🚀 ~ BaseEvaluationService ~ sendDailyKOD ~ error:", error)
@@ -813,7 +812,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       console.log("🚀 ~ BaseEvaluationService ~ ConsistencyKOD ~ error:", error)
     }
   }
-  private async retainImportantData(botInfo: Job): Promise<void> {
+  async retainImportantData(botdata){
     // Define the fields to retain
     const fieldsToRetain = [
         "email",
@@ -827,17 +826,19 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
     ];
 
     // Create a filtered object with only retained fields
-    const retainedData = Object.keys(botInfo.data)
+    const retainedData = Object.keys(botdata)
         .filter((key) => fieldsToRetain.includes(key))
         .reduce((obj, key) => {
-            obj[key] = botInfo.data[key];
+            obj[key] = botdata[key];
             return obj;
         }, {} as Record<string, any>);
 
     // Update the job data with only retained fields
-    await botInfo.update(retainedData);
+    //await botInfo.update(retainedData);
+    //console.log("Updated job data",botInfo.data);
 
     console.log("Retained data in job:", retainedData);
+    return retainedData;
 }
 
   async sendWon(botInfo:Job){
@@ -849,34 +850,32 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       botInfo.data.daily_kod = "false",
       botInfo.data.total_kod = "false"
       await this.rulesEvaluation(botInfo);
-      console.log(" !! BaseEvaluationService ~ SendWon ~ status:", botInfo);
     
-      await this.retainImportantData(botInfo);
-      console.log(`Switching from ${botInfo.data.phase}`,botInfo.data.phase === process.env.Phase_1 );
-      let botPhase = botInfo.data.phase;
+      console.log(`Switching from ${botInfo.data.Phase}`,botInfo.data.Phase === process.env.Phase_1 );
+      await this.stopChallenge(botInfo);
+      const retainedData = await this.retainImportantData(botInfo.data);
+      console.log(`Switching from retain ${botInfo.data.Phase}`,botInfo.data.phase === process.env.Phase_1 );
+      
       let nextPhase: string | undefined;
 
-      if (botInfo.data.phase === process.env.Phase_0) {
+      if (retainedData.Phase === process.env.Phase_0) {
           nextPhase = process.env.Phase_1;
-          botInfo.data.phase = nextPhase;
-
-      } else if (botInfo.data.phase === process.env.Phase_1) {
+        
+      } else if (retainedData.Phase === process.env.Phase_1) {
         
           nextPhase = process.env.Phase_2;
-          console.log("Next Phase",nextPhase)
-          botInfo.data.phase = nextPhase;
-          const temp=botInfo.data;
-          botInfo.update(temp);
-      } else if (botInfo.data.phase === process.env.Phase_2) {
-          nextPhase = "FUNDED";
-          botInfo.data.phase = nextPhase;
+         
+      } else if (retainedData.Phase === process.env.Phase_2) {
+          nextPhase = process.env.Funded;
+         
       } else {
-          console.log(`User has completed all phases. Current phase: ${botInfo.data.phase}`);
-          await this.rulesEvaluation(botInfo);
-          await this.stopChallenge(botInfo);
+          console.log(`User has completed all phases. Current phase: ${retainedData.Phase}`);
+          //await this.rulesEvaluation(botInfo);
+          //await this.stopChallenge(botInfo);
           return;
       }
-      
+      retainedData.Phase = nextPhase;
+     
       // if (nextPhase !== "FUNDED") {
       //     console.log(`Switching from ${botInfo.data.phase} to ${nextPhase}`);
       //     botInfo.data.phase = nextPhase;
@@ -889,7 +888,9 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       //     await this.stopChallenge(botInfo); // Finalize
       console.log(`Switching to ${nextPhase}`);
 
-      await this.IAccountInterface.createAccountWithCTID(botInfo.data);
+     
+      await this.IBotInterface.RunBot(retainedData);
+   
       
     }
     catch(error){

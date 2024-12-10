@@ -45,53 +45,70 @@ async RunBot(botInfo){
 
 }
 async stopBot(body) {
-  console.log("body",body);
-  
+  console.log("Body received for stopBot:", body);
+
   try {
       const { email } = body;
 
       if (!email) {
+          console.error("Email is missing in the request body.");
           return { response: 'Failure', message: 'Please enter a valid email!' };
       }
 
       const jobs = await this.bot_queue.getJobs(['waiting', 'active', 'delayed', 'completed', 'failed']);
+      console.log(`Total jobs retrieved from queue: ${jobs.length}`);
 
-      // Loop through each job to find the matching bot_id and unique_id
       for (const job of jobs) {
-          const jobData = job.data; // Accessing job data directly
+          try {
+              const jobData = job.data;
 
-          if (jobData.email === email) {
-              console.log("🔔  ~ found bot_id @StopBot:", jobData.email);
-              jobData.running = false;
-              const temp = jobData;
-              job.update(temp);
-              //this.unsubscribeFromSpotQuotes(jobData.symbolIds)
-              // Check if the job is in the 'active' state before attempting to move it
-              const state = await job.getState();
-              console.log("🚀 ~ BaseBotService ~ stopBot ~ state:", state)
-              if (state === 'active') {
-                  console.log("🚀 ~ Attempting to move job to completed...");
-                  await job.moveToCompleted('jobCompleted . . .', true);
-                  console.log("🚀 ~ Job moved to completed successfully.");
-              } else {
-                  console.error(`Job is not in an active state (current state: ${state}), cannot move to completed.`);
+              // Validate job data
+              if (!jobData || !jobData.email) {
+                  console.error(`Job data is missing or corrupted for job ID: ${job.id}`);
+                  continue; // Skip this job
               }
 
-              await job.remove();
-              console.log("🚀 ~ Job removed successfully.");
-              console.log("🛑 ~ BOT STOPPED");
-              
-              // Update the running bot list
-              this.runningBotList = this.runningBotList.filter(bot => bot.email !== email);
-              console.log("🚀 ~ Updated ~ Active botList:", this.runningBotList);
+              if (jobData.email === email) {
+                  console.log("🔔 Found bot with email:", jobData.email);
 
-              return {
-                  response: 'Success',
-                  message: `Bot with email: ${email} has been successfully removed.`,
-              };
+                  // Update the job data
+                  jobData.running = false;
+                  const updatedData = { ...jobData }; // Retain all fields
+                  await job.update(updatedData);
+                  console.log(`Job ID ${job.id} updated successfully.`);
+
+                  // Check the state of the job
+                  const state = await job.getState();
+                  console.log(`🚀 Current state of job ID ${job.id}: ${state}`);
+
+                  if (state === 'active') {
+                      console.log("🚀 Attempting to move job to completed...");
+                      await job.moveToCompleted('Job completed successfully.', true);
+                      console.log("🚀 Job moved to completed successfully.");
+                  } else {
+                      console.warn(`Job ID ${job.id} is not in an active state (current state: ${state}).`);
+                  }
+
+                  // Remove the job
+                  await job.remove();
+                  console.log(`🚀 Job ID ${job.id} removed successfully.`);
+                  console.log("🛑 BOT STOPPED");
+
+                  // Update the running bot list
+                  this.runningBotList = this.runningBotList.filter(bot => bot.email !== email);
+                  console.log("🚀 Updated active bot list:", this.runningBotList);
+
+                  return {
+                      response: 'Success',
+                      message: `Bot with email: ${email} has been successfully removed.`,
+                  };
+              }
+          } catch (innerError) {
+              console.error(`Error processing job ID ${job.id}:`, innerError);
           }
       }
 
+      console.warn(`No active bot found with email: ${email}.`);
       return {
           response: 'Failure',
           message: `No active bot found with email: ${email}.`,
@@ -105,6 +122,7 @@ async stopBot(body) {
       };
   }
 }
+
 async stopAllBots() {
     try {
       const activeIds_ = await this.ActiveBotIds()

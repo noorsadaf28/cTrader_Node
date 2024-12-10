@@ -97,7 +97,7 @@ export class DailyEquityService {
         const response: AxiosResponse = await this.httpService
             .get(`${this.spotwareApiUrl}/v2/webserv/traders/`, {
                 params: {
-                    from: dayjs('2024-09-01').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS'),
+                    from: dayjs('2024-12-08').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS'),
                     to: toDate,
                     fields: 'login,balance,minEquityDaily,maxEquityDaily',
                     token: this.apiToken,
