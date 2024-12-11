@@ -772,8 +772,11 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       botInfo.data.challenge_ends = dayjs(Date.now()).format('YYYY-MM-DD');
       botInfo.data.daily_kod = "true",
       botInfo.data.total_kod = "false"
+         botInfo.data.accessRights = "NO_TRADING"
       await this.rulesEvaluation(botInfo);
-      await this.IBotInterface.stopBot(botInfo.data.email);
+    
+      await this.IAccountInterface.UpdateAccount(botInfo.data);
+      await this.IBotInterface.stopBot(botInfo.data)
     }
     catch(error){
       console.log("🚀 ~ BaseEvaluationService ~ sendDailyKOD ~ error:", error)
@@ -787,9 +790,12 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       botInfo.data.challenge_ends = dayjs(Date.now()).format('YYYY-MM-DD');
       botInfo.data.daily_kod = "false",
       botInfo.data.total_kod = "true"
+       botInfo.data.accessRights = "NO_TRADING"
       await this.rulesEvaluation(botInfo);
-      await this.stopChallenge(botInfo)
-      botInfo.discard();
+    
+      await this.IAccountInterface.UpdateAccount(botInfo.data);
+      await this.IBotInterface.stopBot(botInfo.data)
+    
     }
     catch(error){
       console.log("🚀 ~ BaseEvaluationService ~ sendTotalKOD ~ error:", error)
@@ -804,9 +810,12 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       botInfo.data.daily_kod = "false",
       botInfo.data.total_kod = "false",
       botInfo.data.consistency_kod = "true"
+           botInfo.data.accessRights = "NO_TRADING"
       await this.rulesEvaluation(botInfo);
-      await this.stopChallenge(botInfo);
-      botInfo.discard();
+     
+      await this.IAccountInterface.UpdateAccount(botInfo.data);
+      await this.IBotInterface.stopBot(botInfo.data)
+   
     }
     catch(error){
       console.log("🚀 ~ BaseEvaluationService ~ ConsistencyKOD ~ error:", error)
@@ -818,7 +827,6 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
         "email",
         "Initial_balance",
         "Currency",
-        "Leverage",
         "Challenge_type",
         "preferredLanguage",
         "ChallengeID",
@@ -849,10 +857,13 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       botInfo.data.challenge_ends = dayjs(Date.now()).format('YYYY-MM-DD');
       botInfo.data.daily_kod = "false",
       botInfo.data.total_kod = "false"
+      botInfo.data.accessRights = "NO_TRADING"
       await this.rulesEvaluation(botInfo);
+      await this.IAccountInterface.UpdateAccount(botInfo.data);
     
       console.log(`Switching from ${botInfo.data.Phase}`,botInfo.data.Phase === process.env.Phase_1 );
-      await this.stopChallenge(botInfo);
+      
+      await this.IBotInterface.stopBot(botInfo.data);
       const retainedData = await this.retainImportantData(botInfo.data);
       console.log(`Switching from retain ${botInfo.data.Phase}`,botInfo.data.phase === process.env.Phase_1 );
       
@@ -907,7 +918,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
   
       // Use the trader login from botInfo
       const traderLogin = botInfo.data.traderLogin; // Ensure traderLogin exists in botInfo.data
-      this.IAccountInterface.UpdateAccount(traderLogin);
+      await this.IAccountInterface.UpdateAccount(traderLogin);
      
   
       // console.log(`✅ Access rights updated to NO_TRADING for trader ${traderLogin}`,response.data);;

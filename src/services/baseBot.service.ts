@@ -49,7 +49,9 @@ async stopBot(body) {
 
   try {
       const { email } = body;
-
+   
+      
+      // Validate email
       if (!email) {
           console.error("Email is missing in the request body.");
           return { response: 'Failure', message: 'Please enter a valid email!' };
@@ -73,14 +75,14 @@ async stopBot(body) {
 
                   // Update the job data
                   jobData.running = false;
-                  const updatedData = { ...jobData }; // Retain all fields
-                  await job.update(updatedData);
+                  await job.update({ ...jobData, status: 'processed' });
                   console.log(`Job ID ${job.id} updated successfully.`);
 
                   // Check the state of the job
                   const state = await job.getState();
                   console.log(`🚀 Current state of job ID ${job.id}: ${state}`);
 
+                  // Move to completed if the state is active
                   if (state === 'active') {
                       console.log("🚀 Attempting to move job to completed...");
                       await job.moveToCompleted('Job completed successfully.', true);

@@ -24,7 +24,7 @@ export enum AccountConfig {
 
 export const PhaseSettings = {
   [TradingPhases.PHASE_0]: {
-      max_daily_loss: "20",
+      max_daily_loss: "0.0020",
       max_loss: "40",
       profit_target: "5",
       minimum_trading_days: "5",
@@ -39,8 +39,8 @@ export const PhaseSettings = {
   [TradingPhases.PHASE_1]: {
       max_daily_loss: "4",
       max_loss: "8",
-      profit_target: "8",
-      minimum_trading_days: "5",
+      profit_target: "0.008",
+      minimum_trading_days: "0",
       max_trading_days: "0",
       max_daily_currency: "",
       max_total_currency: "",
