@@ -91,9 +91,9 @@ export class EvaluationBotProcess extends BaseBotProcess {
             botInfo.data.status = "Won";
             botInfo.data.request_type = "Won";
             botInfo.data.accountId = botInfo.data.traderLogin;
-            // const tempInfo = botInfo.data;
-            // botInfo.update(tempInfo);
-            // console.log("🚀 ~ EvaluationBotProcess ~ sendWon ~ botInfo:", botInfo.data)
+            const tempInfo = botInfo.data;
+            botInfo.update(tempInfo);
+            console.log("🚀 ~ EvaluationBotProcess111111111 ~ sendWon ~ botInfo:", botInfo.data)
 
 
             botInfo.data.challenge_won = "true";
@@ -101,51 +101,12 @@ export class EvaluationBotProcess extends BaseBotProcess {
             botInfo.data.daily_kod = "false";
             botInfo.data.total_kod = "false";
 
-            let nextPhase: string | undefined;
-            switch (botInfo.data.phase) {
-                case process.env.Phase_0:
-                    nextPhase = process.env.Phase_1;
-                    break;
-                case process.env.Phase_1:
-                    nextPhase = process.env.Phase_2;
-                    break;
-                case process.env.Phase_2:
-                    nextPhase = "FUNDED";
-                    break;
-                default:
-                    console.log(`User has completed all phases. Current phase: ${botInfo.data.phase}`);
-                    await this.IEvaluationInterface.rulesEvaluation(botInfo);
-                    await this.stopChallenge(botInfo);
-                    return;
-            }
-
-            if (nextPhase !== "FUNDED") {
-                console.log(`Switching from ${botInfo.data.phase} to ${nextPhase}`);
-                botInfo.data.phase = nextPhase;
-                await this.switchToPhase2(botInfo);
-            } else {
-                console.log(`User has reached the FUNDED phase`);
-                botInfo.data.phase = "FUNDED";
-                await this.startChallenge(botInfo); // Restart challenge for funded phase
-                await this.stopChallenge(botInfo); // Finalize
-            }
+         
         } catch (error) {
             console.log("🚀 ~ BaseBotProcess ~ sendWon ~ error:", error);
         }
     }
-    async stopChallenge(botInfo: Job) {
-        try {
-            botInfo.data.running = false;
-            const temp = botInfo.data;
-            botInfo.data.update(temp);
-            console.log(" :⛔️:️ Bot Stopped")
-            await this.IBotInterface.stopBot(botInfo)
-        }
-        catch (error) {
-            console.log("🚀 ~ BaseEvaluationService ~ stopChallenge ~ error:", error)
-        }
-    }
-    async sendDailyKOD(botInfo:Job){
+        async sendDailyKOD(botInfo:Job){
         try{
           botInfo.data.request_type = "DailyKOD";
           botInfo.data.status = "Failed";
@@ -154,7 +115,7 @@ export class EvaluationBotProcess extends BaseBotProcess {
           botInfo.data.daily_kod = "true",
           botInfo.data.total_kod = "false"
           await this.IEvaluationInterface.rulesEvaluation(botInfo);
-          await this.stopChallenge(botInfo)
+        //   await this.stopChallenge(botInfo)
         }
         catch(error){
           console.log("🚀 ~ BaseEvaluationService ~ sendDailyKOD ~ error:", error)
@@ -168,27 +129,15 @@ export class EvaluationBotProcess extends BaseBotProcess {
             botInfo.data.request_type = "TotalKOD";
             botInfo.data.daily_kod = "false";
             botInfo.data.accountId = botInfo.data.traderLogin;
-            // const tempInfo = botInfo.data;
-            // botInfo.update(tempInfo);
-            // console.log("🚀 ~ EvaluationBotProcess ~ sendWon ~ botInfo:", botInfo.data)
-            await this.stopChallenge(botInfo); // Finalize
+   
+            
 
             this.IEvaluationInterface.rulesEvaluation(botInfo)
         }
         catch (error) {
-            console.log("🚀 ~ EvaluationBotProcess ~ sendWon ~ error:", error)
+            console.log("🚀 ~ EvaluationBotProcess ~ sendToTalKOD ~ error:", error)
 
         }
     }
-    async switchToPhase2(botInfo: Job) {
-        try {
-            botInfo.data.phase = process.env.Phase_2;
-            const tempData = botInfo.data;
-            botInfo.update(tempData);
-            this.startChallenge(botInfo)
-        }
-        catch (error) {
-            console.log("🚀 ~ EvaluationBotProcess ~ switchToPhase2 ~ error:", error)
-        }
-    }
+   
 }

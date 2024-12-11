@@ -38,4 +38,5 @@ export interface ISpotwareService {
     brokerName: string,
     traderPasswordHash: string
   ): Promise<any>;
+  
 }

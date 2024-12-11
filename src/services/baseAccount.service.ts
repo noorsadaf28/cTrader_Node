@@ -154,6 +154,7 @@ export abstract class BaseAccountService implements IAccountInterface {
   }
 
   async createTrader(createTrader) {
+    console.log("🚀 ~ BaseAccountService ~ createTrader ~ createTrader:", createTrader)
     try {
       const response = await axios.post(`${this.spotwareApiUrl}/v2/webserv/traders`, createTrader, {
         headers: { Authorization: `Bearer ${this.apiToken}` },

@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { activeBotQueue } from 'config/constant';
+import { AppLogger } from './services/loggers/winston.config';
 
 async function bootstrap() {
    const app = await NestFactory.create(AppModule, {

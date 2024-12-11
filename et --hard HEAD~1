@@ -1,0 +1,70 @@
+[33md1f6a71[m[33m ([m[1;36mHEAD -> [m[1;32mcTraderBot[m[33m, [m[1;31morigin/cTraderBot[m[33m)[m Trading days
+[33m09e1efa[m Won event updates with phases
+[33m403a354[m[33m ([m[1;31morigin/dev[m[33m, [m[1;32mdev[m[33m)[m Merge branch 'cTraderBot' into dev
+[33m2db4a1a[m changes for bot
+[33m55acee3[m today's commit 25/11/2024
+[33me27daee[m Merge branch 'cTraderBot' into dev
+[33m295b33f[m Merge branch 'cTraderBot' of https://github.com/noorsadaf28/cTrader_Node into cTraderBot
+[33mcf656cf[m Merge branch 'dev' into cTraderBot
+[33m06b9f0f[m Merge branch 'cTraderBot' into dev
+[33mbe6a02d[m Merge branch 'cTraderBot' of https://github.com/noorsadaf28/cTrader_Node into cTraderBot
+[33md7e2391[m changes
+[33mb7d42b8[m new change
+[33meddca45[m leverage,stoploss,takeprofit update
+[33m257f47c[m Merge branch 'dev' into cTraderBot
+[33m51bccf3[m Merge branch 'cTraderBot' of https://github.com/noorsadaf28/cTrader_Node into cTraderBot
+[33m3a0e7af[m databases updation
+[33m328aa1e[m fixed equity fetch
+[33m66cc2d2[m Merge branch 'dev' into cTraderBot
+[33m22a074e[m changes
+[33mdd7e70c[m Merge branch 'dev' into cTraderBot
+[33m9ef0c62[m changes
+[33mc41dd61[m changes for rules evaluation
+[33me0bdac5[m ok
+[33mfc62727[m changes for profit and loss
+[33m318ed6c[m xano account module update for daily equity
+[33mdb3e60d[m tick data fixed , heartbeat added
+[33m282a35f[m Merge branch 'dev' into cTraderBot
+[33mcd929ce[m new changes
+[33me0fc671[m Merge branch 'cTraderBot' into dev
+[33m58d4250[m changes
+[33mc5d5c68[m make endpoints integration
+[33m54435a7[m Merge branch 'dev' into cTraderBot
+[33m93e3666[m changes for tick
+[33m3e2804b[m changes for tick
+[33m2788251[m daily equity trading days
+[33m1f1c935[m Merge branch 'cTraderBot' into dev
+[33me4db716[m new changes
+[33m6e445c9[m order bot process
+[33meeb5827[m changes
+[33mf033710[m Merge branch 'dev' into cTraderBot
+[33mb05360f[m baseOrder
+[33m991d21f[m Merge branch 'cTraderBot' into dev
+[33m82bb6b4[m tick data changes
+[33m9123dcf[m Closed order updated,daily equity updated
+[33m603eb75[m Your commit message here
+[33mbc629b6[m daily equity cron updates
+[33me62237a[m conflict solve
+[33mfe49307[m Order changes
+[33m3a7d568[m changes for spot
+[33m120d2e8[m merged
+[33m9a07356[m merge with dev
+[33m1b22522[m daily equity,logger,child to parent
+[33mb8a46d3[m new changes
+[33mf947646[m new implementions for stop bot, stop all bot, active bots, and challenge phase integration
+[33md48e7b7[m logger,try_catch
+[33m7f5ccfd[m bot related functionality and challenge
+[33m6d34a82[m new changes related to challenge API
+[33m0b22537[m changes for correction
+[33m2be7737[m changes for rules evaluation
+[33m3047d46[m account updation
+[33mc979fdc[m token func
+[33m0c8e6e0[m changes related to Bot evaluation
+[33m3e096ca[m merge solve
+[33ma774eee[m Account,Order,Auth module
+[33m6237270[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;31morigin/Dev[m[33m, [m[1;32mmain[m[33m)[m changes for websocket
+[33mcd2aad2[m Worked on Account, Auth, Order Module Completely
+[33ma7745da[m new changes
+[33m4974738[m new files
+[33mcf9202f[m initial
+[33m2dba5d1[m Initial commit
