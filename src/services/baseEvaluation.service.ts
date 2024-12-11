@@ -829,6 +829,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
         "Currency",
         "Challenge_type",
         "preferredLanguage",
+        "Leverage",
         "ChallengeID",
         "Phase"
     ];
@@ -863,8 +864,9 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
     
       console.log(`Switching from ${botInfo.data.Phase}`,botInfo.data.Phase === process.env.Phase_1 );
       
-      await this.IBotInterface.stopBot(botInfo.data);
+    
       const retainedData = await this.retainImportantData(botInfo.data);
+      await this.IBotInterface.stopBot(botInfo.data);
       console.log(`Switching from retain ${botInfo.data.Phase}`,botInfo.data.phase === process.env.Phase_1 );
       
       let nextPhase: string | undefined;
