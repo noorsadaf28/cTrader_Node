@@ -15,6 +15,17 @@ export abstract class BaseBotService implements IBotInterface{
 async RunBot(botInfo){
     console.log("🚀 ~ BaseBotService ~ RunBot ~ botInfo:", botInfo)
     try{
+      if (this.runningBotList.length > 0) {
+        const existingBot = this.runningBotList.find(bot => bot.email === botInfo.email);
+        if (existingBot) {
+          console.log("🚀 Botwith id exists already . . .", existingBot)
+  
+          return {
+            status: 'error',
+            message: `Bot with email ${botInfo.email} already exists`
+          };
+        }
+      }
       const accountResponse = await this.IAccountInterface.createAccountWithCTID(botInfo);
         console.log("🚀 ~ EvaluationBotProcess ~ startChallenge ~ accountResponse:", accountResponse)
         if(!accountResponse.traderLogin){

@@ -879,7 +879,11 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       } else if (retainedData.Phase === process.env.Phase_2) {
           nextPhase = process.env.Funded;
          
-      } else {
+      } 
+      else if (retainedData.Phase === process.env.testPhase) {
+        nextPhase = process.env.Phase_0;
+       
+      }else {
           console.log(`User has completed all phases. Current phase: ${retainedData.Phase}`);
           //await this.rulesEvaluation(botInfo);
           //await this.stopChallenge(botInfo);
