@@ -827,7 +827,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
     try{
       botInfo.data.running = false;
       const temp = botInfo.data;
-      botInfo.data.update(temp);
+      botInfo.update(temp);
       console.log(" :⛔️:️ Bot Stopped")
       await this.IBotInterface.stopBot(botInfo.data)
     }
