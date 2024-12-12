@@ -205,7 +205,7 @@ export class DailyEquityService {
 
   // Update the equity for traders daily
   async updateDailyEquityForTraders() {
-  const fromDate = dayjs('2024-09-01').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS');
+  const fromDate = dayjs('2024-12-10').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS');
     const toDate = dayjs().startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS');
 
     this.logger.log(`Starting daily equity update for traders from ${fromDate} to ${toDate}`);
