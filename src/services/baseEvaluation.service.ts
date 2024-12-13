@@ -598,13 +598,47 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
     console.log("��� ~ BaseEvaluationService ~ CheckWonKOD ~ result:", result)
     return result
   }
+  private parseOpenPositionsCsv(csvData: string): any[] {
+    const rows = csvData.split('\n').slice(1); // Skip header row
+    return rows
+      .filter((row) => row.trim())
+      .map((row) => {
+        const columns = row.split(',');
+        return {
+          login: columns[0],
+          positionId: columns[1],
+          openTimestamp: columns[2],
+          entryPrice: columns[3],
+          direction: columns[4],
+          volume: columns[5],
+          symbol: columns[6],
+          commission: columns[7],
+          swap: columns[8],
+          bookType: columns[9],
+          stake: columns[10],
+          spreadBetting: columns[11],
+          usedMargin: columns[12],
+          stop_loss:'NULL'
+        };
+      });
+  }
 
   async CheckWon(login, botInfo:Job) {
     try {
-     //const data = await this..fetchOpenPositions(login, botInfo);
-     //if (data.openPositions){
+      const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/openPositions`, {
+        headers: { Authorization: `Bearer ${this.apiToken}` },
+        params: { token: this.apiToken, login },
+      });
+      const openPositions = this.parseOpenPositionsCsv(response.data);
+  
+      console.log("🚀Checking Open Positions before sendWon Event~ openPositions:", openPositions);
+      console.log("🚀Checking Open Positions before sendWon Event~ openPositions Length:", openPositions.length);
+     if (openPositions.length==0){
+
+console.log("🚀Checking Open Positions Lo bhai yhn bhi aagyew hm:");
       await this.sendWon(botInfo)
-     //}
+     
+    }
     }
     catch (error) {
       console.log("🚀 ~ BaseEvaluationService ~ CheckWon ~ error:", error)
@@ -861,54 +895,56 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       botInfo.data.accessRights = "NO_TRADING"
       await this.rulesEvaluation(botInfo);
       await this.IAccountInterface.UpdateAccount(botInfo.data);
-    
-      console.log(`Switching from ${botInfo.data.Phase}`,botInfo.data.Phase === process.env.Phase_1 );
-      
-    
-      const retainedData = await this.retainImportantData(botInfo.data);
+
+      console.log(`Switching from ${botInfo.data.Phase}`, botInfo.data.Phase === process.env.testPhase);
       await this.IBotInterface.stopBot(botInfo.data);
-      console.log(`Switching from retain ${botInfo.data.Phase}`,botInfo.data.phase === process.env.Phase_1 );
-      
-      let nextPhase: string | undefined;
+      const retainedData = await this.retainImportantData(botInfo.data);
+      console.log(`Switching from before stop bot ${retainedData.phase}`, retainedData.phase === process.env.testPhase);
+     
+      console.log(`Switching from after stopbot ${retainedData.phase}`, retainedData.phase === process.env.testPhase);
+      console.log(`Stopping bot for phase: ${botInfo.data.Phase}`);
 
-      if (retainedData.Phase === process.env.Phase_0) {
-          nextPhase = process.env.Phase_1;
-        
-      } else if (retainedData.Phase === process.env.Phase_1) {
-        
-          nextPhase = process.env.Phase_2;
-         
-      } else if (retainedData.Phase === process.env.Phase_2) {
-          nextPhase = process.env.Funded;
-         
-      } 
-      else if (retainedData.Phase === process.env.testPhase) {
-        nextPhase = process.env.Phase_0;
-       
-      }else {
-          console.log(`User has completed all phases. Current phase: ${retainedData.Phase}`);
-          //await this.rulesEvaluation(botInfo);
-          //await this.stopChallenge(botInfo);
-          return;
+      // Initialize a variable to track whether a bot should be run
+      let nextPhase:string | undefined;
+      let shouldRunBot = false;
+
+      switch (retainedData.Phase) {
+          case process.env.testPhase:
+            nextPhase = process.env.Phase_0;
+              console.log(`Switching from test to ${nextPhase}`);
+              shouldRunBot = true; // Set flag to run the bot
+              break;
+
+          case process.env.Phase_0:
+            nextPhase = process.env.Phase_1;
+              console.log(`Switching from Phase 0 to ${nextPhase}`);
+              shouldRunBot = true; // Set flag to run the bot
+              break;
+
+          case process.env.Phase_1:
+            nextPhase = process.env.Phase_2;
+              console.log(`Switching from Phase 1 to ${nextPhase}`);
+              shouldRunBot = true; // Set flag to run the bot
+              break;
+
+          case process.env.Phase_2:
+              botInfo.data.Phase = process.env.Funded;
+              console.log(`Switching from Phase 2 to ${nextPhase}`);
+              shouldRunBot = true; // Set flag to run the bot
+              break;
+
+          default:
+              console.log(`User has completed all phases. Current phase: ${nextPhase}`);
+              await this.rulesEvaluation(botInfo);
+              return; // Exit early if all phases are complete
       }
-      retainedData.Phase = nextPhase;
-     
-      // if (nextPhase !== "FUNDED") {
-      //     console.log(`Switching from ${botInfo.data.phase} to ${nextPhase}`);
-      //     botInfo.data.phase = nextPhase;
-      //     await this.switchToPhase2(botInfo);
-      // } else {
-      //     console.log(`User has reached the FUNDED phase`);
-      //     botInfo.data.phase = "FUNDED";
-      //     // await this.IBotProcessInterface.startChallenge(botInfo); // Restart challenge for funded phase
-        
-      //     await this.stopChallenge(botInfo); // Finalize
-      console.log(`Switching to ${nextPhase}`);
 
-     
-      await this.IBotInterface.RunBot(retainedData);
-   
-      
+      // Only run the bot if we set the flag
+      if (shouldRunBot) {
+          retainedData.Phase = nextPhase;
+          console.log(`Switching to ${retainedData.Phase}, ${nextPhase}`);
+          await this.IBotInterface.RunBot(retainedData);
+      }
     }
     catch(error){
       console.log("🚀 ~ BaseEvaluationService ~ sendWON~ error:", error)

@@ -68,61 +68,63 @@ async pollPositions(botInfo: Job) {
 }
 
 
-  async fetchOpenPositions(login: number, botInfo:Job) {
-    try {
-      
-      const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/openPositions`, {
-        headers: { Authorization: `Bearer ${this.apiToken}` },
-        params: { token: this.apiToken, login },
-      });
-      this.logger.log('Fetched open positions from Spotware');
-      const openPositions = this.parseOpenPositionsCsv(response.data);
-      console.log("🚀 ~ BaseOrderService ~ pollPositions ~ openPositions:", openPositions);
+async fetchOpenPositions(login: number, botInfo: Job) {
+  try {
+    const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/openPositions`, {
+      headers: { Authorization: `Bearer ${this.apiToken}` },
+      params: { token: this.apiToken, login },
+    });
+    this.logger.log('Fetched open positions from Spotware');
+    const openPositions = this.parseOpenPositionsCsv(response.data);
 
-      // Track unique trading days
-      const tradingDaysSet = new Set<string>(); // Use a set to store unique dates
-      let tradingDays;
+    console.log("🚀 ~ BaseOrderService ~ pollPositions ~ openPositions:", openPositions);
+    console.log("🚀 ~ BaseOrderService ~ pollPositions ~ openPositions:", openPositions.length);
 
-      for (let i = 0; i < openPositions.length; i++) {
-        const position = openPositions[i];
-
-        
-
-        // Extract the date from the openTimestamp and add it to the tradingDaysSet
-        const openDate = new Date(position.openTimestamp).toISOString().split('T')[0]; // Extract date part
-        tradingDaysSet.add(openDate);
-        if(botInfo != undefined){
-          console.log("here-----------------")
-            // Add symbol to botInfo if not already included
-            const isBotActive = await this.IBotInterface.checkBotStatus(botInfo);
-            console.log("🚀 ~ isBotActive:", isBotActive)
-
-            if (!isBotActive) {
-                return { message:"BOTSTOPPED",response: ` ❌ Bot Not Present . . . ` }
-            }
-          if (!botInfo.data.symbols.includes(position.symbol)) {
-            botInfo.data.symbols.push(position.symbol);
-          }
-          botInfo.data.tradingDaysSet = tradingDaysSet;
-          botInfo.data.tradingDays = tradingDays
-          const tempData = botInfo.data;
-          botInfo.update(tempData);
-        }
-      }
-      if(tradingDaysSet.size != undefined){
-        tradingDays = tradingDaysSet.size;
-      }
-      else{
-        tradingDays = 0;
-      }
-      this.logger.log(`Trading days for login ${login}: ${tradingDays}`);
-
-      return {openPositions, tradingDays};
-    } catch (error) {
-      this.logger.error(`Failed to fetch open positions: ${error.message}`);
-      throw new HttpException('Failed to fetch open positions', HttpStatus.FORBIDDEN);
+    if (!openPositions || openPositions.length === 0) {
+      this.logger.log("No new open positions found. Proceeding with historical data.");
     }
+
+    // Ensure tradingDaysSet persists between calls
+    const tradingDaysSet = botInfo?.data?.tradingDaysSet ?? new Set<string>();
+
+    for (const position of openPositions) {
+      const openDate = new Date(position.openTimestamp).toISOString().split('T')[0];
+      console.log("Ye hai open date", openDate);
+
+      // Add unique dates to the persistent set
+      tradingDaysSet.add(openDate);
+
+      if (botInfo) {
+        console.log("Checking bot status...");
+        const isBotActive = await this.IBotInterface.checkBotStatus(botInfo);
+
+        console.log("🚀 ~ isBotActive:", isBotActive);
+
+        if (!isBotActive) {
+          return { message: "BOTSTOPPED", response: "❌ Bot Not Present . . . " };
+        }
+
+        if (!botInfo.data.symbols.includes(position.symbol)) {
+          botInfo.data.symbols.push(position.symbol);
+        }
+
+        botInfo.data.tradingDaysSet = tradingDaysSet;
+        botInfo.data.tradingDays = tradingDaysSet.size; // Updated count
+        const tempData = botInfo.data;
+        botInfo.update(tempData);
+      }
+    }
+
+    const tradingDays = tradingDaysSet.size;
+    this.logger.log(`Trading days for login ${login}: ${tradingDays}`);
+
+    return { openPositions, tradingDays };
+  } catch (error) {
+    this.logger.error(`Failed to fetch open positions: ${error.message}`);
+    throw new HttpException('Failed to fetch open positions', HttpStatus.FORBIDDEN);
   }
+}
+
 
   private async fetchClosedPositions(login: number, botInfo:Job) {
     
