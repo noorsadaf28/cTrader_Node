@@ -15,17 +15,17 @@ export abstract class BaseBotService implements IBotInterface{
 async RunBot(botInfo){
     console.log("🚀 ~ BaseBotService ~ RunBot ~ botInfo:", botInfo)
     try{
-      if (this.runningBotList.length > 0) {
-        const existingBot = this.runningBotList.find(bot => bot.email === botInfo.email);
-        if (existingBot) {
-          console.log("🚀 Botwith id exists already . . .", existingBot)
+    //  if (this.runningBotList.length > 0) {
+    //     const existingBot = this.runningBotList.find(bot => bot.email === botInfo.email);
+    //     if (existingBot) {
+    //       console.log("🚀 Botwith id exists already . . .", existingBot)
   
-          return {
-            status: 'error',
-            message: `Bot with email ${botInfo.email} already exists`
-          };
-        }
-      }
+    //       return {
+    //          status: 'error',
+    //         message: `Bot with email ${botInfo.email} already exists`
+    //       };
+    //     }
+    //   }
       const accountResponse = await this.IAccountInterface.createAccountWithCTID(botInfo);
         console.log("🚀 ~ EvaluationBotProcess ~ startChallenge ~ accountResponse:", accountResponse)
         if(!accountResponse.traderLogin){
@@ -45,7 +45,7 @@ async RunBot(botInfo){
             bot_queue_id: bot_queue.id
           };
           
-          this.runningBotList.push(newBot)
+          await this.runningBotList.push(newBot)
          
           return { message: 'Challenge Started. . . ', Challenge
             : botInfo.Challenge_type, Info: `Unique Job Id for the bot is : '${bot_queue.id}' ` }

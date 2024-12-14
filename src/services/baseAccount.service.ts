@@ -190,7 +190,7 @@ export abstract class BaseAccountService implements IAccountInterface {
     try {
       const accessRights = process.env.fullAccess;
       const accountType = process.env.hedged;
-      const balance = req.Initial_balance;
+      const balance = req.Initial_balance*100;
       const brokerName = process.env.brokerName;
       const depositCurrency = req.Currency;
       const groupName = process.env.groupName;
