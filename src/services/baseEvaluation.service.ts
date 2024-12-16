@@ -598,7 +598,6 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
     const resultValue = ( req.initial_balance + req.profitCurrency)
     const result = req.currentEquity >= ( req.initial_balance + req.profitCurrency);
     console.log("��� ~ BaseEvaluationService ~ CheckWonKOD ~ result:", result,resultValue,req.currentEquity);
-    const finalResult=result;
     return result
   }
   private parseOpenPositionsCsv(csvData: string): any[] {
@@ -812,7 +811,6 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       botInfo.data.challenge_ends = dayjs(Date.now()).format('YYYY-MM-DD');
       botInfo.data.daily_kod = "true",
       botInfo.data.total_kod = "false"
-         botInfo.data.accessRights = "NO_TRADING"
       await this.rulesEvaluation(botInfo);
     
       await this.stopChallenge(botInfo)
@@ -851,7 +849,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
            botInfo.data.accessRights = "NO_TRADING"
       await this.rulesEvaluation(botInfo);
      
-      await this.IAccountInterface.UpdateAccount(botInfo.data);
+      // await this.IAccountInterface.UpdateAccount(botInfo.data);
       await this.stopChallenge(botInfo)
    
     }
@@ -888,7 +886,6 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
     console.log("Retained data in job:", retainedData);
     return retainedData;
 }
-private runningBotList = []
 
   async sendWon(botInfo:Job){
     try{
@@ -948,17 +945,7 @@ private runningBotList = []
       if (shouldRunBot) {
           retainedData.Phase = nextPhase;
           console.log(`Switching to ${retainedData.Phase}, ${nextPhase}`);
-            if (this.runningBotList.length > 0) {
-        const existingBot = this.runningBotList.find(bot => bot.email === botInfo.data.email);
-        if (existingBot) {
-          console.log("🚀 Botwith id exists already . . .", existingBot)
-  
-          return {
-             status: 'error',
-            message: `Bot with email ${botInfo.data.email} already exists`
-          };
-        }
-      }
+            
           await this.IBotInterface.RunBot(retainedData);
       }
     }

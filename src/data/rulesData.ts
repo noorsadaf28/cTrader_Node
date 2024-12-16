@@ -25,13 +25,13 @@ export enum AccountConfig {
 
 export const PhaseSettings = {
   [TradingPhases.PHASE_0]: {
-      max_daily_loss: "20",
-      max_loss: "40",
-      profit_target: "0.005",
-      minimum_trading_days: "0",
-      max_trading_days: "0",
-      max_daily_currency: "",
-      max_total_currency: "",
+    max_daily_loss: "20",
+    max_loss: "40",
+    profit_target: "5",
+    minimum_trading_days: "5",
+    max_trading_days: "0",
+    max_daily_currency: "",
+    max_total_currency: "",
       starting_daily_equity: "",
       leverageInCents: "1:2" ,
       consistency_kod:"",
