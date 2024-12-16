@@ -34,7 +34,7 @@ export class DailyEquityService {
     timeZone: 'Europe/Madrid',
   })
   async handleCron() {
-    const madridTime = dayjs().tz('Europe/Madrid').format('YYYY-MM-DD HH:mm:ss');
+    const madridTime = dayjs().tz('Europe/Madrid').format('YYYY.MM.DD HH:mm:ss');
     this.logger.log(`Executing daily equity update via cron job at 00:00 Madrid time: ${madridTime}`);
     try {
       const result = await this.updateDailyEquityForTraders();
@@ -118,15 +118,15 @@ export class DailyEquityService {
                 const openPositionData = await this.IOrderInterface.fetchOpenPositions(trader.login, this.botInfo);
 
                 return {
-                    account: trader.login,
-                    starting_daily_equity: trader.balance.toString(), // Convert balance to string as required by Xano
-                    sde_date: dayjs().format('YYYY-MM-DD'),
-                    gmt_date: dayjs().toISOString(),
-                    created_at: dayjs().toISOString(),
-                    status: 'pending',
-                    trading_days: openPositionData.tradingDays || 0,
-                    challenge_begins: dayjs().subtract(30, 'days').format('YYYY-MM-DD'),
-                    new_status: 'pending',
+                  account: trader.login,
+                  starting_daily_equity: trader.balance.toString(),
+                  sde_date: dayjs().tz('Europe/Madrid').format('YYYY.MM.DD HH:mm:ss'), // Correct format
+                  gmt_date: dayjs().tz('UTC').format('YYYY.MM.DD HH:mm:ss'), // Correct format
+                  created_at: dayjs().toISOString(),
+                  status: 'pending',
+                  trading_days: openPositionData.tradingDays || 0,
+                  challenge_begins: dayjs().subtract(30, 'days').format('YYYY.MM.DD'), // Correct format
+                  new_status: 'pending',
                 };
             })
         );
@@ -205,7 +205,7 @@ export class DailyEquityService {
 
   // Update the equity for traders daily
   async updateDailyEquityForTraders() {
-  const fromDate = dayjs('2024-09-01').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS');
+  const fromDate = dayjs('2024-12-10').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS');
     const toDate = dayjs().startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS');
 
     this.logger.log(`Starting daily equity update for traders from ${fromDate} to ${toDate}`);

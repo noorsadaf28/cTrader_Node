@@ -94,12 +94,12 @@ export abstract class BaseAccountService implements IAccountInterface {
     const dailyEquityData = {
       account: traderLogin,
       starting_daily_equity: traderResponse.balance.toString(),
-      sde_date: dayjs().format('YYYY-MM-DD'),
-      gmt_date: dayjs().toISOString(),
+      sde_date:dayjs().tz('Europe/Madrid').format('YYYY.MM.DD HH:mm:ss'), // For local time
+      gmt_date: dayjs().tz('UTC').format('YYYY.MM.DD HH:mm:ss'),          // For UTC
       created_at: dayjs().toISOString(),
       status: 'pending',
       trading_days: '0',
-      challenge_begins: dayjs().subtract(30, 'days').format('YYYY-MM-DD'),
+      challenge_begins: dayjs().subtract(30, 'days').format('YYYY.MM.DD'),
       new_status: 'pending'
     };
 

@@ -9,6 +9,7 @@ import { tmpdir } from 'os';
 import { HttpService } from '@nestjs/axios';
 import { IEvaluationInterface } from './Interfaces/IEvaluation.interface';
 import { IBotInterface } from './Interfaces/IBot.interface';
+import * as dayjs from 'dayjs';
 @Injectable()
 export class BaseOrderService implements IOrderInterface {
   private readonly xanoApiUrl: string;
@@ -176,7 +177,7 @@ async fetchOpenPositions(login: number, botInfo: Job) {
           stake: columns[10],
           spreadBetting: columns[11],
           usedMargin: columns[12],
-          stop_loss:'NULL'
+          stop_loss:'0'
         };
       });
   }
@@ -206,7 +207,7 @@ async fetchOpenPositions(login: number, botInfo: Job) {
           spreadBetting: columns[15],
           entryPrice: columns[16],
           dealId: columns[17],
-          take_profit:'NULL',
+          take_profit:'0',
           updated_at:Date.now()
         };
       });
@@ -279,39 +280,47 @@ async fetchOpenPositions(login: number, botInfo: Job) {
   // Helper methods for mapping positions to DTOs
   private mapOpenPositionToOrderDto(position: any): CreateOrderDto {
     return {
-      key: position.positionId.toString(),
+      key: `${position.login}${position.positionId}`, // Corrected key format
       ticket_id: Number(position.positionId),
       account: Number(position.login),
       type: position.direction,
       symbol: position.symbol,
       volume: parseFloat(position.volume),
       entry_price: parseFloat(position.entryPrice),
-      entry_date: position.openTimestamp,
+      entry_date: dayjs(position.openTimestamp).isValid()
+        ? dayjs(position.openTimestamp).format('YYYY.MM.DD HH:mm:ss') // Ensure it's parsed into a valid dayjs object
+        : position.openTimestamp, // Fallback to the raw timestamp if parsing fails
       broker: 'Spotware',
       open_reason: position.bookType || 'AUTO',
+      take_profit: '0',
+      stop_loss: position.stop_loss || '0',
     };
   }
-
+  
   private mapClosedPositionToOrderDto(position: any): CreateOrderDto {
     return {
-      key: position.positionId.toString(),
+      key: `${position.login}_${position.positionId}`, // Corrected key format
       ticket_id: Number(position.positionId),
       account: Number(position.login),
       type: position.direction,
       symbol: position.symbol,
       volume: parseFloat(position.volume),
       entry_price: parseFloat(position.entryPrice),
-      entry_date: position.openTimestamp,
+      entry_date: dayjs(position.openTimestamp).isValid()
+        ? dayjs(position.openTimestamp).format('YYYY.MM.DD HH:mm:ss') // Ensure it's parsed into a valid dayjs object
+        : position.openTimestamp, // Fallback to the raw timestamp if parsing fails
       close_price: parseFloat(position.closePrice),
-      close_date: position.closeTimestamp,
+      close_date: dayjs(position.closeTimestamp).isValid()
+        ? dayjs(position.closeTimestamp).format('YYYY.MM.DD HH:mm:ss') // Ensure it's parsed into a valid dayjs object
+        : position.closeTimestamp, // Fallback to the raw timestamp if parsing fails
       profit: parseFloat(position.pnl),
       broker: 'Spotware',
-      stop_loss:'NULL',
-      take_profit:'NULL',
+      take_profit: position.take_profit || '0',
+      stop_loss: position.stop_loss || '0',
       open_reason: position.bookType || 'AUTO',
       close_reason: 'AUTO',
-      updated_at: Date.now()
-    
+      updated_at: Date.now(),
     };
   }
+  
 }

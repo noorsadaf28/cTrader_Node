@@ -596,8 +596,9 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
   }
   async CheckWonKOD(req){
     const resultValue = ( req.initial_balance + req.profitCurrency)
-    const result = req.currentEquity >= ( req.nitial_balance + req.profitCurrency);
-    console.log("��� ~ BaseEvaluationService ~ CheckWonKOD ~ result:", result,resultValue)
+    const result = req.currentEquity >= ( req.initial_balance + req.profitCurrency);
+    console.log("��� ~ BaseEvaluationService ~ CheckWonKOD ~ result:", result,resultValue,req.currentEquity);
+    const finalResult=result;
     return result
   }
   private parseOpenPositionsCsv(csvData: string): any[] {
@@ -620,28 +621,28 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
           stake: columns[10],
           spreadBetting: columns[11],
           usedMargin: columns[12],
-          stop_loss:'NULL'
+          stop_loss:'0'
         };
       });
   }
 
-  async CheckWon(login, botInfo: Job) {
+  async CheckWon(login, botInfo) {
     try {
       const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/openPositions`, {
         headers: { Authorization: `Bearer ${this.apiToken}` },
         params: { token: this.apiToken, login },
       });
-  
       const openPositions = this.parseOpenPositionsCsv(response.data);
   
-      console.log("🚀Checking Open Positions before sendWon Event~ openPositions:", openPositions);
-      console.log("🚀Checking Open Positions before sendWon Event~ openPositions Length:", openPositions.length);
+      console.log("🚀Checking Open Positions before sendWon Event~ openPositions and length:", openPositions,openPositions.length);
+ 
   
-      // Define `checkWonResume` logic
-      const checkWonResume = openPositions.length === 0 && await this.CheckWonKOD(botInfo);
+      // Await CheckWonKOD result
+      const checkWonResult = await this.CheckWonKOD(botInfo);
+      console.log("🚀 ~ CheckWonResult:", checkWonResult);
   
-      if (checkWonResume) {
-        console.log("🚀CheckWonResume condition met, calling sendWon...");
+      if (openPositions.length == 0) {
+        console.log("🚀Preparing to send event as won:");
         await this.sendWon(botInfo);
       } else {
         console.log("🚀CheckWonResume condition NOT met, skipping sendWon...");
@@ -814,8 +815,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
          botInfo.data.accessRights = "NO_TRADING"
       await this.rulesEvaluation(botInfo);
     
-      await this.IAccountInterface.UpdateAccount(botInfo.data);
-      await this.IBotInterface.stopBot(botInfo.data)
+      await this.stopChallenge(botInfo)
     }
     catch(error){
       console.log("🚀 ~ BaseEvaluationService ~ sendDailyKOD ~ error:", error)
@@ -832,8 +832,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
        botInfo.data.accessRights = "NO_TRADING"
       await this.rulesEvaluation(botInfo);
     
-      await this.IAccountInterface.UpdateAccount(botInfo.data);
-      await this.IBotInterface.stopBot(botInfo.data)
+      await this.stopChallenge(botInfo)
     
     }
     catch(error){
@@ -853,7 +852,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       await this.rulesEvaluation(botInfo);
      
       await this.IAccountInterface.UpdateAccount(botInfo.data);
-      await this.IBotInterface.stopBot(botInfo.data)
+      await this.stopChallenge(botInfo)
    
     }
     catch(error){
@@ -901,10 +900,10 @@ private runningBotList = []
       botInfo.data.total_kod = "false"
       botInfo.data.accessRights = "NO_TRADING"
       await this.rulesEvaluation(botInfo);
-      await this.IAccountInterface.UpdateAccount(botInfo.data);
+      // await this.IAccountInterface.UpdateAccount(botInfo.data);
 
       console.log(`Switching from ${botInfo.data.Phase}`, botInfo.data.Phase === process.env.testPhase);
-      await this.IBotInterface.stopBot(botInfo.data);
+      await this.stopChallenge(botInfo);
       const retainedData = await this.retainImportantData(botInfo.data);
       console.log(`Switching from before stop bot ${retainedData.phase}`, retainedData.phase === process.env.testPhase);
      
