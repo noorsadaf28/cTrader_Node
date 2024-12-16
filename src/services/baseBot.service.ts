@@ -32,6 +32,7 @@ async RunBot(botInfo){
             return { message: 'Challenge not started. . . ', Challenge
               : botInfo.Challenge_type, Error:  accountResponse}
         }
+        botInfo.Initial_balance=botInfo.Initial_balance*100;
         botInfo.traderLogin = accountResponse.traderLogin;
         botInfo.ctid = accountResponse.ctid;
         botInfo.ctidTraderAccountId = accountResponse.ctidTraderAccountId;
@@ -41,7 +42,7 @@ async RunBot(botInfo){
         botInfo.symbolsSubscribed = [];
         const bot_queue = await this.bot_queue.add('start-challenge', botInfo)
         const newBot = {
-            email: botInfo.email,
+            login: botInfo.traderLogin,
             bot_queue_id: bot_queue.id
           };
           
@@ -59,12 +60,12 @@ async stopBot(body) {
   console.log("Body received for stopBot:", body);
 
   try {
-      const { email } = body;
+      const { traderLogin } = body;
    
       
       // Validate email
-      if (!email) {
-          console.error("Email is missing in the request body.");
+      if (!traderLogin) {
+          console.error("TraderLogin is missing in the request body.");
           return { response: 'Failure', message: 'Please enter a valid email!' };
       }
 
@@ -76,13 +77,13 @@ async stopBot(body) {
               const jobData = job.data;
 
               // Validate job data
-              if (!jobData || !jobData.email) {
+              if (!jobData || !jobData.traderLogin) {
                   console.error(`Job data is missing or corrupted for job ID: ${job.id}`);
                   continue; // Skip this job
               }
 
-              if (jobData.email === email) {
-                  console.log("🔔 Found bot with email:", jobData.email);
+              if (jobData.traderLogin === traderLogin) {
+                  console.log("🔔 Found bot with TraderLogin :", jobData.traderLogin);
 
                   // Update the job data
                   jobData.running = false;
@@ -108,12 +109,12 @@ async stopBot(body) {
                   console.log("🛑 BOT STOPPED");
 
                   // Update the running bot list
-                  this.runningBotList = this.runningBotList.filter(bot => bot.email !== email);
+                  this.runningBotList = this.runningBotList.filter(bot => bot.traderLogin !== traderLogin);
                   console.log("🚀 Updated active bot list:", this.runningBotList);
 
                   return {
                       response: 'Success',
-                      message: `Bot with email: ${email} has been successfully removed.`,
+                      message: `Bot with email: ${traderLogin} has been successfully removed.`,
                   };
               }
           } catch (innerError) {
@@ -121,10 +122,10 @@ async stopBot(body) {
           }
       }
 
-      console.warn(`No active bot found with email: ${email}.`);
+      console.warn(`No active bot found with email: ${traderLogin}.`);
       return {
           response: 'Failure',
-          message: `No active bot found with email: ${email}.`,
+          message: `No active bot found with email: ${traderLogin}.`,
       };
   } catch (error) {
       console.error('Error in stopBot function:', error);
@@ -192,7 +193,7 @@ async stopAllBots() {
   }
   async checkBotStatus(botInfo: Job) {
     try{
-      const { email } = botInfo.data;
+      const { traderLogin } = botInfo.data;
       //console.log("🚀 ~checkBotStatus  ~ bot_id:", bot_id)
   
       const jobs_ = await this.bot_queue.getJobs(['active']['completed']);
@@ -202,7 +203,7 @@ async stopAllBots() {
         for (const job of jobs_) {
           //console.log("🚀 ~ BaseBotServices ~ checkBotStatus ~ job:", job)
   
-          if (job.data.email == email) {
+          if (job.data.traderLogin == traderLogin) {
             
             //console.log(' this id is present @checkBotStatus . . . . .', job.data)
             return true;
@@ -211,8 +212,8 @@ async stopAllBots() {
   
       }
       // console.log(` @checkBotStatus  : [${bot_id}] not present . . . . . .`)
-      console.log(`@checkBotStatus: [${email}] not present `);
-      console.log(`❗️ No Bot Present with email ${email} `);
+      console.log(`@checkBotStatus: [${traderLogin}] not present `);
+      console.log(`❗️ No Bot Present with email ${traderLogin} `);
       // console.log(`. . . . .No Bot Present with id  ${bot_id} . . . . . .`)
         isActive = false
         return isActive;

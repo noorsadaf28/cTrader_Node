@@ -572,9 +572,9 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
 
   async dailyKOD(req) {
     try {
-      const result1 = req.currentEquity - (req.startingDailyEquity - req.maxDailyCurrency)
+      const resultValue = req.currentEquity - (req.startingDailyEquity - req.maxDailyCurrency)
       const result = req.currentEquity - (req.startingDailyEquity - req.maxDailyCurrency) < 0;
-      console.log("🚀 ~ BaseEvaluationService ~ dailyKOD ~ result:", result,result1)
+      console.log("🚀 ~ BaseEvaluationService ~ dailyKOD ~ result:", result,resultValue)
       return result;
     }
     catch (error) {
@@ -584,8 +584,9 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
   }
   async TotalKOD(req) {
     try {
+      const resultValue = req.currentEquity - (req.initial_balance - req.maxTotalCurrency)
       const result = req.currentEquity - (req.initial_balance - req.maxTotalCurrency) < 0;
-      console.log("🚀 ~ BaseEvaluationService ~ TotalKOD ~ result:", result)
+      console.log("🚀 ~ BaseEvaluationService ~ TotalKOD ~ result:", result,resultValue)
       return result;
     }
     catch (error) {
@@ -594,8 +595,9 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
     }
   }
   async CheckWonKOD(req){
-    const result = req.currentEquity >= ( req.initial_balance + req.profitCurrency);
-    console.log("��� ~ BaseEvaluationService ~ CheckWonKOD ~ result:", result)
+    const resultValue = ( req.initial_balance + req.profitCurrency)
+    const result = req.currentEquity >= ( req.nitial_balance + req.profitCurrency);
+    console.log("��� ~ BaseEvaluationService ~ CheckWonKOD ~ result:", result,resultValue)
     return result
   }
   private parseOpenPositionsCsv(csvData: string): any[] {
@@ -623,29 +625,32 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       });
   }
 
-  async CheckWon(login, botInfo:Job) {
+  async CheckWon(login, botInfo: Job) {
     try {
       const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/openPositions`, {
         headers: { Authorization: `Bearer ${this.apiToken}` },
         params: { token: this.apiToken, login },
       });
+  
       const openPositions = this.parseOpenPositionsCsv(response.data);
   
       console.log("🚀Checking Open Positions before sendWon Event~ openPositions:", openPositions);
       console.log("🚀Checking Open Positions before sendWon Event~ openPositions Length:", openPositions.length);
-     if (openPositions.length==0){
-
-console.log("🚀Checking Open Positions Lo bhai yhn bhi aagyew hm:");
-      await this.sendWon(botInfo)
-     
-    }
-    }
-    catch (error) {
-      console.log("🚀 ~ BaseEvaluationService ~ CheckWon ~ error:", error)
-
+  
+      // Define `checkWonResume` logic
+      const checkWonResume = openPositions.length === 0 && await this.CheckWonKOD(botInfo);
+  
+      if (checkWonResume) {
+        console.log("🚀CheckWonResume condition met, calling sendWon...");
+        await this.sendWon(botInfo);
+      } else {
+        console.log("🚀CheckWonResume condition NOT met, skipping sendWon...");
+      }
+    } catch (error) {
+      console.log("🚀 ~ BaseEvaluationService ~ CheckWon ~ error:", error);
     }
   }
-
+  
 
 async ConsistencyKOD(botInfo: Job, closedPosition) {
   // console.debug(`ConsistencyKOD started for botInfo: ${JSON.stringify(botInfo)}`);
@@ -859,6 +864,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
     // Define the fields to retain
     const fieldsToRetain = [
         "email",
+        "traderLogin",
         "Initial_balance",
         "Currency",
         "Challenge_type",
@@ -883,6 +889,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
     console.log("Retained data in job:", retainedData);
     return retainedData;
 }
+private runningBotList = []
 
   async sendWon(botInfo:Job){
     try{
@@ -938,11 +945,21 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
               await this.rulesEvaluation(botInfo);
               return; // Exit early if all phases are complete
       }
-
       // Only run the bot if we set the flag
       if (shouldRunBot) {
           retainedData.Phase = nextPhase;
           console.log(`Switching to ${retainedData.Phase}, ${nextPhase}`);
+            if (this.runningBotList.length > 0) {
+        const existingBot = this.runningBotList.find(bot => bot.email === botInfo.data.email);
+        if (existingBot) {
+          console.log("🚀 Botwith id exists already . . .", existingBot)
+  
+          return {
+             status: 'error',
+            message: `Bot with email ${botInfo.data.email} already exists`
+          };
+        }
+      }
           await this.IBotInterface.RunBot(retainedData);
       }
     }

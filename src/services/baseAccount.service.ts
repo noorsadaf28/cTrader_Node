@@ -188,6 +188,7 @@ export abstract class BaseAccountService implements IAccountInterface {
 
   async createReq(req) {
     try {
+    
       const accessRights = process.env.fullAccess;
       const accountType = process.env.hedged;
       const balance = req.Initial_balance*100;
