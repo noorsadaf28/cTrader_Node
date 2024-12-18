@@ -886,6 +886,17 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
     console.log("Retained data in job:", retainedData);
     return retainedData;
 }
+private phaseSwitchCount: number = 0; // Tracks how many times a phase switch occurs
+private runBotCount: number = 0; // Tracks how many times a bot is run
+
+  // Add methods to expose counters for external reporting/debugging
+  getPhaseSwitchCount(): number {
+    return this.phaseSwitchCount;
+  }
+
+  getRunBotCount(): number {
+    return this.runBotCount;
+  }
 
   async sendWon(botInfo:Job){
     try{
@@ -900,11 +911,11 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       // await this.IAccountInterface.UpdateAccount(botInfo.data);
 
       console.log(`Switching from ${botInfo.data.Phase}`, botInfo.data.Phase === process.env.testPhase);
-      await this.stopChallenge(botInfo);
+      
       const retainedData = await this.retainImportantData(botInfo.data);
-      console.log(`Switching from before stop bot ${retainedData.phase}`, retainedData.phase === process.env.testPhase);
-     
-      console.log(`Switching from after stopbot ${retainedData.phase}`, retainedData.phase === process.env.testPhase);
+      console.log(`Switching Phase before stop bot ${retainedData.Phase}`, retainedData.Phase === process.env.testPhase);
+      await this.stopChallenge(botInfo);
+      console.log(`Switching from after stopbot ${retainedData.Phase}`, retainedData.Phase === process.env.testPhase);
       console.log(`Stopping bot for phase: ${botInfo.data.Phase}`);
 
       // Initialize a variable to track whether a bot should be run
@@ -912,47 +923,61 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       let shouldRunBot = false;
 
       switch (retainedData.Phase) {
-          case process.env.testPhase:
-            nextPhase = process.env.Phase_0;
-              console.log(`Switching from test to ${nextPhase}`);
-              shouldRunBot = true; // Set flag to run the bot
-              break;
+        case process.env.testPhase:
+          nextPhase = process.env.Phase_0;
+          console.log(`Switching from test to ${nextPhase}`);
+          shouldRunBot = true;
+          break;
 
-          case process.env.Phase_0:
-            nextPhase = process.env.Phase_1;
-              console.log(`Switching from Phase 0 to ${nextPhase}`);
-              shouldRunBot = true; // Set flag to run the bot
-              break;
+        case process.env.Phase_0:
+          nextPhase = process.env.Phase_1;
+          console.log(`Switching from Phase 0 to ${nextPhase}`);
+          shouldRunBot = true;
+          break;
 
-          case process.env.Phase_1:
-            nextPhase = process.env.Phase_2;
-              console.log(`Switching from Phase 1 to ${nextPhase}`);
-              shouldRunBot = true; // Set flag to run the bot
-              break;
+        case process.env.Phase_1:
+          nextPhase = process.env.Phase_2;
+          console.log(`Switching from Phase 1 to ${nextPhase}`);
+          shouldRunBot = true;
+          break;
 
-          case process.env.Phase_2:
-              botInfo.data.Phase = process.env.Funded;
-              console.log(`Switching from Phase 2 to ${nextPhase}`);
-              shouldRunBot = true; // Set flag to run the bot
-              break;
+        case process.env.Phase_2:
+          nextPhase = process.env.Funded;
+          console.log(`Switching from Phase 2 to ${nextPhase}`);
+          shouldRunBot = true;
+          break;
 
-          default:
-              console.log(`User has completed all phases. Current phase: ${nextPhase}`);
-              await this.rulesEvaluation(botInfo);
-              return; // Exit early if all phases are complete
+        default:
+          console.log(`User has completed all phases. Current phase: ${retainedData.Phase}`);
+          await this.rulesEvaluation(botInfo);
+          return; // Exit if all phases are complete
       }
-      // Only run the bot if we set the flag
+
+      // Perform phase transition only if needed
       if (shouldRunBot) {
-          retainedData.Phase = nextPhase;
-          console.log(`Switching to ${retainedData.Phase}, ${nextPhase}`);
-            
-          await this.IBotInterface.RunBot(retainedData);
+        // Increment phase switch count
+        this.phaseSwitchCount++;
+        console.log(`🔄 Phase Switch Count: ${this.phaseSwitchCount}`);
+
+        retainedData.Phase = nextPhase; // Set the next phase for the bot
+        console.log(`Switching to ${retainedData.Phase}, ${nextPhase}`);
+
+        // Run the bot for the next phase
+        await this.IBotInterface.RunBot(retainedData);
+
+        // Increment bot run count
+        this.runBotCount++;
+        console.log(`▶️ Run Bot Count: ${this.runBotCount}`);
+
+        // Reset the flag to ensure it doesn't remain true after the loop
+        shouldRunBot = false;
       }
-    }
-    catch(error){
-      console.log("🚀 ~ BaseEvaluationService ~ sendWON~ error:", error)
+    } catch (error) {
+      console.log("🚀 ~ BaseEvaluationService ~ sendWon ~ error:", error);
     }
   }
+
+  
   async stopChallenge(botInfo: Job) {
     try {
       // Stop the bot
