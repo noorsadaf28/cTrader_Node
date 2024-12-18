@@ -956,7 +956,7 @@ private runBotCount: number = 0; // Tracks how many times a bot is run
       // Perform phase transition only if needed
       if (shouldRunBot) {
         // Increment phase switch count
-        this.phaseSwitchCount++;
+        await this.phaseSwitchCount++;
         console.log(`🔄 Phase Switch Count: ${this.phaseSwitchCount}`);
 
         retainedData.Phase = nextPhase; // Set the next phase for the bot
@@ -966,11 +966,12 @@ private runBotCount: number = 0; // Tracks how many times a bot is run
         await this.IBotInterface.RunBot(retainedData);
 
         // Increment bot run count
-        this.runBotCount++;
+        await this.runBotCount++;
         console.log(`▶️ Run Bot Count: ${this.runBotCount}`);
 
         // Reset the flag to ensure it doesn't remain true after the loop
         shouldRunBot = false;
+        return;
       }
     } catch (error) {
       console.log("🚀 ~ BaseEvaluationService ~ sendWon ~ error:", error);
