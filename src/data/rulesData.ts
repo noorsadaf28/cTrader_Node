@@ -38,17 +38,17 @@ export const PhaseSettings = {
       consistency_value:"25"
   },
   [TradingPhases.PHASE_1]: {
-      max_daily_loss: "0.004",
+      max_daily_loss: "4",
       max_loss: "8",
-      profit_target: "0.008",
-      minimum_trading_days: "0",
+      profit_target: "8",
+      minimum_trading_days: "5",
       max_trading_days: "0",
       max_daily_currency: "",
       max_total_currency: "",
       starting_daily_equity: "",
       leverageInCents: "1:100", // 1:100 leverage
       consistency_kod:"",
-      consistency_value:"2555"
+      consistency_value:"25"
   },
   [TradingPhases.PHASE_2]: {
       max_daily_loss: "5",
@@ -80,12 +80,12 @@ export const PhaseSettings = {
     max_daily_loss: "0.01",
     max_loss: "0.5",
     profit_target: "0.005",
-    minimum_trading_days: "2",
+    minimum_trading_days: "0",
     max_trading_days: "0",
     max_daily_currency: "",
     max_total_currency: "",
     starting_daily_equity: "",
-    leverageInCents: "1:2",// 1:30 leverage
+    leverageInCents: "1:100",// 1:100 leverage
     consistency_kod:"",
     consistency_value:"25"
 }

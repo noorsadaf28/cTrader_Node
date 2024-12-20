@@ -686,9 +686,9 @@ async dailyKOD(req) {
   
       console.log("🚀Checking Open Positions before sendWon Event~ openPositions and length:", openPositions,openPositions.length);
  
+      console.debug("Trading Days OF BOT:", botInfo.data.tradingDays, "Minimum Trading Days ReQuired FOR BOT:",botInfo.data.minimum_trading_days);
   
-  
-      if (openPositions.length == 0) {
+      if (openPositions.length == 0 && botInfo.data.tradingDays>=botInfo.data.minimum_trading_days) {
         console.log("🚀Preparing to send event as won:");
         await this.sendWon(botInfo);
       } else {
