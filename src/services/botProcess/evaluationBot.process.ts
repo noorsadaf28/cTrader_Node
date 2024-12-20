@@ -85,96 +85,96 @@ export class EvaluationBotProcess extends BaseBotProcess {
 
         }
     }
-    async sendWon(botInfo: Job) {
-        try {
+    // async sendWon(botInfo: Job) {
+    //     try {
 
-            botInfo.data.status = "Won";
-            botInfo.data.request_type = "Won";
-            botInfo.data.accountId = botInfo.data.traderLogin;
-            const tempInfo = botInfo.data;
-            botInfo.update(tempInfo);
-            console.log("🚀 ~ EvaluationBotProcess111111111 ~ sendWon ~ botInfo:", botInfo.data)
+    //         botInfo.data.status = "Won";
+    //         botInfo.data.request_type = "Won";
+    //         botInfo.data.accountId = botInfo.data.traderLogin;
+    //         const tempInfo = botInfo.data;
+    //         botInfo.update(tempInfo);
+    //         console.log("🚀 ~ EvaluationBotProcess111111111 ~ sendWon ~ botInfo:", botInfo.data)
 
 
-            botInfo.data.challenge_won = "true";
-            botInfo.data.challenge_ends = dayjs(Date.now()).format('YYYY-MM-DD');
-            botInfo.data.daily_kod = "false";
-            botInfo.data.total_kod = "false";
+    //         botInfo.data.challenge_won = "true";
+    //         botInfo.data.challenge_ends = dayjs(Date.now()).format('YYYY-MM-DD');
+    //         botInfo.data.daily_kod = "false";
+    //         botInfo.data.total_kod = "false";
 
-            let nextPhase: string | undefined;
-            switch (botInfo.data.phase) {
-                case process.env.Phase_0:
-                    nextPhase = process.env.Phase_1;
-                    break;
-                case process.env.Phase_1:
-                    nextPhase = process.env.Phase_2;
-                    break;
-                case process.env.Phase_2:
-                    nextPhase = "FUNDED";
-                    break;
-                default:
-                    console.log(`User has completed all phases. Current phase: ${botInfo.data.phase}`);
-                    await this.IEvaluationInterface.rulesEvaluation(botInfo);
-                    // await this.stopChallenge(botInfo);
-                    return;
-            }
+    //         let nextPhase: string | undefined;
+    //         switch (botInfo.data.phase) {
+    //             case process.env.Phase_0:
+    //                 nextPhase = process.env.Phase_1;
+    //                 break;
+    //             case process.env.Phase_1:
+    //                 nextPhase = process.env.Phase_2;
+    //                 break;
+    //             case process.env.Phase_2:
+    //                 nextPhase = "FUNDED";
+    //                 break;
+    //             default:
+    //                 console.log(`User has completed all phases. Current phase: ${botInfo.data.phase}`);
+    //                 await this.IEvaluationInterface.rulesEvaluation(botInfo);
+    //                 // await this.stopChallenge(botInfo);
+    //                 return;
+    //         }
 
-            if (nextPhase !== "FUNDED") {
-                console.log(`Switching from ${botInfo.data.phase} to ${nextPhase}`);
-                botInfo.data.phase = nextPhase;
-                await this.switchToPhase2(botInfo);
-            } else {
-                console.log(`User has reached the FUNDED phase`);
-                botInfo.data.phase = "FUNDED";
-                await this.startChallenge(botInfo); // Restart challenge for funded phase
-                // await this.stopChallenge(botInfo); // Finalize
-            }
-        } catch (error) {
-            console.log("🚀 ~ BaseBotProcess ~ sendWon ~ error:", error);
-        }
-    }
-        async sendDailyKOD(botInfo:Job){
-        try{
-          botInfo.data.request_type = "DailyKOD";
-          botInfo.data.status = "Failed";
-          botInfo.data.challenge_won = "false";
-          botInfo.data.challenge_ends = dayjs(Date.now()).format('YYYY-MM-DD');
-          botInfo.data.daily_kod = "true",
-          botInfo.data.total_kod = "false"
-          await this.IEvaluationInterface.rulesEvaluation(botInfo);
-        //   await this.stopChallenge(botInfo)
-        }
-        catch(error){
-          console.log("🚀 ~ BaseEvaluationService ~ sendDailyKOD ~ error:", error)
-        }
-      }
+    //         if (nextPhase !== "FUNDED") {
+    //             console.log(`Switching from ${botInfo.data.phase} to ${nextPhase}`);
+    //             botInfo.data.phase = nextPhase;
+    //             await this.switchToPhase2(botInfo);
+    //         } else {
+    //             console.log(`User has reached the FUNDED phase`);
+    //             botInfo.data.phase = "FUNDED";
+    //             await this.startChallenge(botInfo); // Restart challenge for funded phase
+    //             // await this.stopChallenge(botInfo); // Finalize
+    //         }
+    //     } catch (error) {
+    //         console.log("🚀 ~ BaseBotProcess ~ sendWon ~ error:", error);
+    //     }
+    // }
+    //     async sendDailyKOD(botInfo:Job){
+    //     try{
+    //       botInfo.data.request_type = "DailyKOD";
+    //       botInfo.data.status = "Failed";
+    //       botInfo.data.challenge_won = "false";
+    //       botInfo.data.challenge_ends = dayjs(Date.now()).format('YYYY-MM-DD');
+    //       botInfo.data.daily_kod = "true",
+    //       botInfo.data.total_kod = "false"
+    //       await this.IEvaluationInterface.rulesEvaluation(botInfo);
+    //     //   await this.stopChallenge(botInfo)
+    //     }
+    //     catch(error){
+    //       console.log("🚀 ~ BaseEvaluationService ~ sendDailyKOD ~ error:", error)
+    //     }
+    //   }
 
-    async sendTotalKOD(botInfo: Job) {
-        try {
+    // async sendTotalKOD(botInfo: Job) {
+    //     try {
 
-            botInfo.data.status = "Failed";
-            botInfo.data.request_type = "TotalKOD";
-            botInfo.data.daily_kod = "false";
-            botInfo.data.accountId = botInfo.data.traderLogin;
+    //         botInfo.data.status = "Failed";
+    //         botInfo.data.request_type = "TotalKOD";
+    //         botInfo.data.daily_kod = "false";
+    //         botInfo.data.accountId = botInfo.data.traderLogin;
    
             
 
-            this.IEvaluationInterface.rulesEvaluation(botInfo)
-        }
-        catch (error) {
-            console.log("🚀 ~ EvaluationBotProcess ~ sendWon ~ error:", error)
+    //         this.IEvaluationInterface.rulesEvaluation(botInfo)
+    //     }
+    //     catch (error) {
+    //         console.log("🚀 ~ EvaluationBotProcess ~ sendWon ~ error:", error)
 
-        }
-    }
-    async switchToPhase2(botInfo: Job) {
-        try {
-            botInfo.data.phase = process.env.Phase_2;
-            const tempData = botInfo.data;
-            botInfo.update(tempData);
-            this.startChallenge(botInfo)
-        }
-        catch (error) {
-            console.log("🚀 ~ EvaluationBotProcess ~ switchToPhase2 ~ error:", error)
-        }
-    }
+    //     }
+    // }
+    // async switchToPhase2(botInfo: Job) {
+    //     try {
+    //         botInfo.data.phase = process.env.Phase_2;
+    //         const tempData = botInfo.data;
+    //         botInfo.update(tempData);
+    //         this.startChallenge(botInfo)
+    //     }
+    //     catch (error) {
+    //         console.log("🚀 ~ EvaluationBotProcess ~ switchToPhase2 ~ error:", error)
+    //     }
+    // }
 }

@@ -77,7 +77,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       });
       this.client.setKeepAlive(true, 10000);
       this.client.on('data', (data: Buffer) => {
-        this.handleEventData(data);
+        this.handleEventData(data,this.botInfo);
       });
       this.client.on('end', () => {
         console.log('Connection ended by server');
@@ -226,7 +226,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
     return Buffer.concat([lengthBuffer, buffer]);
   }
   // Handle incoming data, process ProtoSpotEvent messages
-  private handleEventData(data: Buffer) {
+  private handleEventData(data: Buffer,botInfo:Job) {
     //console.log("Data received in handleEventData", data.toString());
 
     // Append new data to the existing buffer
@@ -263,7 +263,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
         const protoJson = decodedEvent.toJSON();
         if(protoJson.payloadType == 'PROTO_SPOT_EVENT'){
           console.log("Tick Recieved:", protoJson);
-          this.checkRules(protoJson.symbolId);
+          this.checkRules(botInfo,protoJson.symbolId);
         }
         // Process the decoded spot data
         //this.processSpotData(decodedEvent);
@@ -472,97 +472,106 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
 
     }
   }
-  async checkRules(symbolId: string) {
+  async checkRules(botInfo:Job,symbolId: string) {
      
       try {
-        const isBotActive = await this.IBotInterface.checkBotStatus(this.botInfo);
-            console.log("🚀 ~ isBotActive:", isBotActive)
+   
 
-            if (!isBotActive) {
-                await this.unsubscribeFromSpotQuotes(this.botInfo.data.symbolsSubscribed)
-                console.log(" ⛔️ Evaluation Stopped")
-                //this.botInfo.data = [];
-                return { response: ` ❌ Bot Not Present . . . ` }
-            }
-          console.debug("checkRules started for symbolId:", symbolId);
+        // Check if bot is active in the system
+        const isBotActive = await this.IBotInterface.checkBotStatus(botInfo);
+        console.log("🚀 ~ Bot status in checkRules for", this.botInfo.data.traderLogin, "is", isBotActive ? "ACTIVE" : "INACTIVE");
+
+        if (!isBotActive) {
+            await this.unsubscribeFromSpotQuotes(this.botInfo.data.symbolsSubscribed);
+            console.log("⛔️ Evaluation Stopped - Bot Not Active");
+            return { response: "❌ Bot Not Present..." };
+        }
+
+        console.debug("checkRules started for symbolId:", symbolId);
   
           const symbolName = await this.symbolname(symbolId);
           console.debug("Fetched symbolName:", symbolName);
   
-          if (this.botInfo.data.symbolsSubscribed.includes(symbolName)) {
+          if (botInfo.data.symbolsSubscribed.includes(symbolName)) {
             
               console.log("✅ Symbol present for user.");
   
               // Fetch relevant data
-              const currentEquity = await this.getCurrentEquity(this.botInfo.data.accountId);
+              const currentEquity = await this.getCurrentEquity(botInfo.data.traderLogin);
               console.debug("Current equity fetched:", currentEquity);
   
-              const startingDailyEquity = await this.getDailyEquity(this.botInfo.data.accountId);
+              const startingDailyEquity = await this.getDailyEquity(botInfo.data.traderLogin);
               console.debug("Starting daily equity fetched:", startingDailyEquity);
   
-              const maxDailyCurrency = parseInt(this.botInfo.data.max_daily_currency);
+              const maxDailyCurrency = parseInt(botInfo.data.max_daily_currency);
               console.debug("Max daily currency:", maxDailyCurrency);
   
-              const maxTotalCurrency = parseInt(this.botInfo.data.max_total_currency);
+              const maxTotalCurrency = parseInt(botInfo.data.max_total_currency);
               console.debug("Max total currency:", maxTotalCurrency);
   
-              const initial_balance = parseInt(this.botInfo.data.Initial_balance);
+              const initial_balance = parseInt(botInfo.data.Initial_balance);
               console.debug("Initial balance fetched:", initial_balance);
-              const profitCurrency = parseInt(this.botInfo.data.profitCurrency);
+              const profitCurrency = parseInt(botInfo.data.profitCurrency);
               // Debug log to check the botInfo data
               // console.log("Bot Info Data:", JSON.stringify(this.botInfo.data, null, 2));
   
               // Ensure profit_target is available
-              const profitTarget = parseFloat(this.botInfo.data.profit_target);
+              const profitTarget = parseFloat(botInfo.data.profit_target);
               if (isNaN(profitTarget)) {
-                  console.error("🚨 Invalid profit_target:", this.botInfo.data.profit_target);
+                  console.error("🚨 Invalid profit_target:", botInfo.data.profit_target);
                   throw new Error("Invalid profit_target");
               }
               console.debug("Profit target validated:", profitTarget);
   
-              const dataJson = {
+              let dataJson = {
                   currentEquity,
                   startingDailyEquity,
                   maxDailyCurrency,
                   maxTotalCurrency,
                   initial_balance,
-                  profitCurrency
+                  profitCurrency,
+                  traderLogin: botInfo.data.traderLogin,
+                  status: botInfo.data.status
               };
               console.debug("Constructed dataJson:", JSON.stringify(dataJson, null, 2));
   
               // Call KOD functions with correct arguments
               const checkDailyKOD = await this.dailyKOD(dataJson);
-              console.debug("Daily KOD check result:", checkDailyKOD);
+              console.debug("Daily KOD check result:", checkDailyKOD,botInfo.data.traderLogin);
   
               const checkTotalKOD = await this.TotalKOD(dataJson);
-              console.debug("Total KOD check result:", checkTotalKOD);
+              console.debug("Total KOD check result:", checkTotalKOD,botInfo.data.traderLogin);
               
               const checkWonEvent = await this.CheckWonKOD(dataJson);
-              console.debug("Won check result:", this.CheckWonKOD);
+              console.debug("Won check result:", checkWonEvent,botInfo.data.traderLogin);
               //const tradingDays = await this.t
               // const checkConsistencyKOD = await this.ConsistencyKOD(this.botInfo);
               // console.debug("Consistency KOD check result:", checkConsistencyKOD);
-  console.log("The following fields are here:", JSON.stringify)
+  console.log("The following results are here:")
               // Handle KOD checks
               if (checkDailyKOD) {
-                  console.warn("❌ User failed Daily KOD:", checkDailyKOD);
+                  console.warn("❌ User failed Daily KOD:", checkDailyKOD,botInfo.data.traderLogin);
                   
-                  await this.sendDailyKOD(this.botInfo);
+                  await this.sendDailyKOD(botInfo);
+                  
               } else if (checkTotalKOD) {
-                  console.warn("❌ User failed Total KOD:", checkTotalKOD);
-                  await this.sendTotalKOD(this.botInfo);
+                  console.warn("❌ User failed Total KOD:", checkTotalKOD,botInfo.data.traderLogin);
+                  await this.sendTotalKOD(botInfo);
               } 
               else if(checkWonEvent){
                 console.warn("Check Won");
                 //await this.sendWon(this.botInfo)
-                await this.CheckWon(this.botInfo.data.accountId, this.botInfo, )
+                await this.CheckWon(botInfo.data.traderLogin, botInfo )
               }
               else {
                   console.log("✅ All KOD checks passed.");
               }
+
+  // After completing the KOD checks, set dataJson to null to avoid data leakage
+
           } else {
               console.log("❌ Symbol not subscribed for this user.");
-          }
+          } 
       } catch (error) {
           console.error("🚀 ~ checkRules ~ error:", error);
       }
@@ -570,23 +579,46 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
   
 
 
-  async dailyKOD(req) {
-    try {
-      const resultValue = req.currentEquity - (req.startingDailyEquity - req.maxDailyCurrency)
-      const result = req.currentEquity - (req.startingDailyEquity - req.maxDailyCurrency) < 0;
-      console.log("🚀 ~ BaseEvaluationService ~ dailyKOD ~ result:", result,resultValue)
-      return result;
-    }
-    catch (error) {
-      console.log("🚀 ~ BaseEvaluationService ~ dailyKOD ~ error:", error)
+async dailyKOD(req) {
+  try {
+    console.log("Checking Bot Status Inside DailyKOD", req.traderLogin,req.status);
 
+    // Check if the bot is active
+    if (req.status !== 'Active') {
+      console.log("⚠️ Bot is not active. Skipping DailyKOD logic.", req.traderLogin);
+      return false; // Skip further checks if the bot is not active
     }
+
+    
+
+    // Perform the DailyKOD logic
+    const resultValue = req.currentEquity - (req.startingDailyEquity - req.maxDailyCurrency);
+    const result = resultValue < 0;
+    console.log(`🚀 ~ BaseEvaluationService ~ dailyKOD ~ result:${req.traderLogin}:`, result, "Calculated Value:", resultValue);
+
+    
+
+    // Return the result
+    return result;
+    
+  
+  } catch (error) {
+    console.log("🚀 ~ BaseEvaluationService ~ dailyKOD ~ error:", error);
+    return false; // Return a default value in case of errors
   }
+}
+
   async TotalKOD(req) {
     try {
+      console.log("Checking Bot Status Inside CheckWonKOD",req.traderLogin,req.status);
+      
+      if (req.status !== 'Active') {
+        console.log("⚠️ Bot is not active. Skipping TotalKOD logic.",req.traderLogin);
+        return false; // Skip further checks if the bot is not active
+      }
       const resultValue = req.currentEquity - (req.initial_balance - req.maxTotalCurrency)
       const result = req.currentEquity - (req.initial_balance - req.maxTotalCurrency) < 0;
-      console.log("🚀 ~ BaseEvaluationService ~ TotalKOD ~ result:", result,resultValue)
+      console.log(`🚀 ~ BaseEvaluationService ~ TotalKOD ~ result:${req.traderLogin}:`, result,resultValue)
       return result;
     }
     catch (error) {
@@ -594,12 +626,31 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
 
     }
   }
-  async CheckWonKOD(req){
-    const resultValue = ( req.initial_balance + req.profitCurrency)
-    const result = req.currentEquity >= ( req.initial_balance + req.profitCurrency);
-    console.log("��� ~ BaseEvaluationService ~ CheckWonKOD ~ result:", result,resultValue,req.currentEquity);
-    return result
+  async CheckWonKOD(req) {
+    try {
+  
+      // Validate if the bot status is 'Active'
+      console.log("Checking Bot Status Inside CheckWonKOD",req.traderLogin,req.status);
+      
+      if (req.status !== 'Active') {
+        console.log("⚠️ Bot is not active. Skipping CheckWonKOD logic.");
+        return false; // Skip further checks if the bot is not active
+      }
+  
+      // Calculate the result value and evaluate the condition
+      const resultValue = req.initial_balance + req.profitCurrency;
+      const result = req.currentEquity >= resultValue;
+  
+      // Log the details for debugging
+      console.log(`🔍 ~ BaseEvaluationService ~ CheckWonKOD ~ result:${req.traderLogin}:`, result, resultValue, req.currentEquity);
+  
+      return result;
+    } catch (error) {
+      console.error("🚨 Error in CheckWonKOD:", error);
+      throw error; // Rethrow error for higher-level handling if needed
+    }
   }
+  
   private parseOpenPositionsCsv(csvData: string): any[] {
     const rows = csvData.split('\n').slice(1); // Skip header row
     return rows
@@ -636,9 +687,6 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       console.log("🚀Checking Open Positions before sendWon Event~ openPositions and length:", openPositions,openPositions.length);
  
   
-      // Await CheckWonKOD result
-      const checkWonResult = await this.CheckWonKOD(botInfo);
-      console.log("🚀 ~ CheckWonResult:", checkWonResult);
   
       if (openPositions.length == 0) {
         console.log("🚀Preparing to send event as won:");
@@ -654,7 +702,10 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
 
 async ConsistencyKOD(botInfo: Job, closedPosition) {
   // console.debug(`ConsistencyKOD started for botInfo: ${JSON.stringify(botInfo)}`);
-
+  if (this.botInfo.data.status !== 'Active') {
+    console.log("⚠️ Bot is not active. Skipping ConsistencyKOD logic.",this.botInfo.data.traderLogin);
+    return false; // Skip further checks if the bot is not active
+  }
     const login = botInfo.data.traderLogin;
     const currentPhase = botInfo.data.Phase; // Assume this is stored in botInfo
     console.info(`Processing ConsistencyKOD for login: ${login}, phase: ${currentPhase}`);
@@ -811,10 +862,22 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       botInfo.data.challenge_ends = dayjs(Date.now()).format('YYYY-MM-DD');
       botInfo.data.daily_kod = "true",
       botInfo.data.total_kod = "false"
+
+
       await this.rulesEvaluation(botInfo);
+
     
-      await this.stopChallenge(botInfo)
+      if (botInfo.data.status === 'Failed') {
+        console.log('Bot status found sendDailyKOD',botInfo.data.traderLogin, botInfo.data.status);
+       
+      await this.IAccountInterface.UpdateAccount(botInfo.data);
+      await this.IBotInterface.stopBot(botInfo.data);
+      // await this.stopChallenge(botInfo);
+      }
+      return;
+    
     }
+    
     catch(error){
       console.log("🚀 ~ BaseEvaluationService ~ sendDailyKOD ~ error:", error)
     }
@@ -828,9 +891,18 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       botInfo.data.daily_kod = "false",
       botInfo.data.total_kod = "true"
        botInfo.data.accessRights = "NO_TRADING"
-      await this.rulesEvaluation(botInfo);
-    
-      await this.stopChallenge(botInfo)
+
+       await this.rulesEvaluation(botInfo);
+
+
+      if (botInfo.data.status === 'Failed') {
+        console.log('Bot status found sendTotalKOD',botInfo.data.traderLogin, botInfo.data.status);
+
+      await this.IAccountInterface.UpdateAccount(botInfo.data);
+      await this.IBotInterface.stopBot(botInfo.data);
+      // await this.stopChallenge(botInfo);
+      }
+      return;
     
     }
     catch(error){
@@ -847,37 +919,50 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       botInfo.data.total_kod = "false",
       botInfo.data.consistency_kod = "true"
            botInfo.data.accessRights = "NO_TRADING"
-      await this.rulesEvaluation(botInfo);
+           await this.rulesEvaluation(botInfo);   
      
-      // await this.IAccountInterface.UpdateAccount(botInfo.data);
-      await this.stopChallenge(botInfo)
+      if (botInfo.data.status === 'Failed') {
+        console.log('Bot status found for ConsistencyKOD',botInfo.data.traderLogin, botInfo.data.status);{
+       
+      await this.IAccountInterface.UpdateAccount(botInfo.data);
+      await this.IBotInterface.stopBot(botInfo.data);
+      // await this.stopChallenge(botInfo);
+    
+    }
+      return;
+    
+    }
    
     }
     catch(error){
       console.log("🚀 ~ BaseEvaluationService ~ ConsistencyKOD ~ error:", error)
     }
   }
-  async retainImportantData(botdata){
+  async retainImportantData(botdata) {
     // Define the fields to retain
     const fieldsToRetain = [
-        "email",
-        "traderLogin",
-        "Initial_balance",
-        "Currency",
-        "Challenge_type",
-        "preferredLanguage",
-        "Leverage",
-        "ChallengeID",
-        "Phase"
+      "email",
+      "Initial_balance",
+      "Currency",
+      "Challenge_type",
+      "preferredLanguage",
+      "Leverage",
+      "ChallengeID",
+      "Phase"
     ];
 
     // Create a filtered object with only retained fields
     const retainedData = Object.keys(botdata)
-        .filter((key) => fieldsToRetain.includes(key))
-        .reduce((obj, key) => {
-            obj[key] = botdata[key];
-            return obj;
-        }, {} as Record<string, any>);
+      .filter((key) => fieldsToRetain.includes(key))
+      .reduce((obj, key) => {
+        // Divide Initial_balance by 100 if the key is 'Initial_balance'
+        if (key === 'Initial_balance') {
+          obj[key] = botdata[key] / 100;
+        } else {
+          obj[key] = botdata[key];
+        }
+        return obj;
+      }, {} as Record<string, any>);
 
     // Update the job data with only retained fields
     //await botInfo.update(retainedData);
@@ -885,7 +970,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
 
     console.log("Retained data in job:", retainedData);
     return retainedData;
-}
+  }
 private phaseSwitchCount: number = 0; // Tracks how many times a phase switch occurs
 private runBotCount: number = 0; // Tracks how many times a bot is run
 
@@ -898,86 +983,99 @@ private runBotCount: number = 0; // Tracks how many times a bot is run
     return this.runBotCount;
   }
 
-  async sendWon(botInfo:Job){
-    try{
+  async sendWon(botInfo: Job) {
+    try {
       botInfo.data.request_type = "Won";
       botInfo.data.status = "Won";
       botInfo.data.challenge_won = "true";
       botInfo.data.challenge_ends = dayjs(Date.now()).format('YYYY-MM-DD');
-      botInfo.data.daily_kod = "false",
-      botInfo.data.total_kod = "false"
-      botInfo.data.accessRights = "NO_TRADING"
-      await this.rulesEvaluation(botInfo);
-      // await this.IAccountInterface.UpdateAccount(botInfo.data);
-
-      console.log(`Switching from ${botInfo.data.Phase}`, botInfo.data.Phase === process.env.testPhase);
+      botInfo.data.daily_kod = "false";
+      botInfo.data.total_kod = "false";
+      botInfo.data.accessRights = "NO_TRADING";
+  
       
+  
+      console.log(`Switching from ${botInfo.data.Phase}`, botInfo.data.Phase === process.env.testPhase);
+  
       const retainedData = await this.retainImportantData(botInfo.data);
       console.log(`Switching Phase before stop bot ${retainedData.Phase}`, retainedData.Phase === process.env.testPhase);
-      await this.stopChallenge(botInfo);
-      console.log(`Switching from after stopbot ${retainedData.Phase}`, retainedData.Phase === process.env.testPhase);
-      console.log(`Stopping bot for phase: ${botInfo.data.Phase}`);
+  
+      if (botInfo.data.status === 'Won') {
 
-      // Initialize a variable to track whether a bot should be run
-      let nextPhase:string | undefined;
-      let shouldRunBot = false;
-
-      switch (retainedData.Phase) {
-        case process.env.testPhase:
-          nextPhase = process.env.Phase_0;
-          console.log(`Switching from test to ${nextPhase}`);
-          shouldRunBot = true;
-          break;
-
-        case process.env.Phase_0:
-          nextPhase = process.env.Phase_1;
-          console.log(`Switching from Phase 0 to ${nextPhase}`);
-          shouldRunBot = true;
-          break;
-
-        case process.env.Phase_1:
-          nextPhase = process.env.Phase_2;
-          console.log(`Switching from Phase 1 to ${nextPhase}`);
-          shouldRunBot = true;
-          break;
-
-        case process.env.Phase_2:
-          nextPhase = process.env.Funded;
-          console.log(`Switching from Phase 2 to ${nextPhase}`);
-          shouldRunBot = true;
-          break;
-
-        default:
-          console.log(`User has completed all phases. Current phase: ${retainedData.Phase}`);
-          await this.rulesEvaluation(botInfo);
-          return; // Exit if all phases are complete
-      }
-
-      // Perform phase transition only if needed
-      if (shouldRunBot) {
-        // Increment phase switch count
-        await this.phaseSwitchCount++;
-        console.log(`🔄 Phase Switch Count: ${this.phaseSwitchCount}`);
-
-        retainedData.Phase = nextPhase; // Set the next phase for the bot
-        console.log(`Switching to ${retainedData.Phase}, ${nextPhase}`);
-
-        // Run the bot for the next phase
-        await this.IBotInterface.RunBot(retainedData);
-
-        // Increment bot run count
-        await this.runBotCount++;
-        console.log(`▶️ Run Bot Count: ${this.runBotCount}`);
-
-        // Reset the flag to ensure it doesn't remain true after the loop
-        shouldRunBot = false;
-        return;
+        await this.rulesEvaluation(botInfo);
+        console.log('Bot status found for SenDWon', botInfo.data.status);
+        await this.IBotInterface.stopBot(botInfo.data);
+        // await this.stopChallenge(botInfo);
+        console.log(`Switching from after stopbot ${retainedData.Phase}`, retainedData.Phase === process.env.testPhase);
+        console.log(`Stopping bot for phase: ${botInfo.data.Phase}`);
+  
+        // Initialize a variable to track whether a bot should be run
+        let nextPhase: string | undefined;
+        let shouldRunBot = false;
+  
+        // Track whether the bot was run
+        let botRunOnce = false;
+  
+        switch (retainedData.Phase) {
+          case process.env.testPhase:
+            nextPhase = process.env.Phase_0;
+            console.log(`Switching from test to ${nextPhase}`);
+            shouldRunBot = true;
+            break;
+  
+          case process.env.Phase_0:
+            nextPhase = process.env.Phase_1;
+            console.log(`Switching from Phase 0 to ${nextPhase}`);
+            shouldRunBot = true;
+            break;
+  
+          case process.env.Phase_1:
+            nextPhase = process.env.Phase_2;
+            console.log(`Switching from Phase 1 to ${nextPhase}`);
+            shouldRunBot = true;
+            break;
+  
+          case process.env.Phase_2:
+            nextPhase = process.env.Funded;
+            console.log(`Switching from Phase 2 to ${nextPhase}`);
+            shouldRunBot = true;
+            break;
+  
+          default:
+            console.log(`User has completed all phases. Current phase: ${retainedData.Phase}`);
+            await this.rulesEvaluation(botInfo);
+            return; // Exit if all phases are complete
+        }
+  
+        // Perform phase transition only if needed
+        if (shouldRunBot && !botRunOnce) {
+          // Increment phase switch count
+          await this.phaseSwitchCount++;
+          console.log(`🔄 Phase Switch Count: ${this.phaseSwitchCount}`);
+  
+          retainedData.Phase = nextPhase; // Set the next phase for the bot
+          console.log(`Switching to ${retainedData.Phase}, ${nextPhase}`);
+  
+          // Run the bot for the next phase
+          await this.IBotInterface.RunBot(retainedData);
+  
+          // Increment bot run count
+          await this.runBotCount++;
+          console.log(`▶️ Run Bot Count: ${this.runBotCount}`);
+  
+          // Mark the bot as having run once
+          botRunOnce = true;
+  
+          // Exit the function immediately after one bot run
+          console.log("🚪 Exiting after one bot run.");
+          return;
+        }
       }
     } catch (error) {
       console.log("🚀 ~ BaseEvaluationService ~ sendWon ~ error:", error);
     }
   }
-
+  
   
   async stopChallenge(botInfo: Job) {
     try {
@@ -985,7 +1083,7 @@ private runBotCount: number = 0; // Tracks how many times a bot is run
       botInfo.data.running = false;
       const temp = botInfo.data;
       botInfo.update(temp);
-      console.log("⛔️ Bot Stopped");
+      console.log("⛔️ Bot running Stopped in StopChallege");
   
       // Use the trader login from botInfo
       const traderLogin = botInfo.data.traderLogin; // Ensure traderLogin exists in botInfo.data
@@ -1001,16 +1099,6 @@ private runBotCount: number = 0; // Tracks how many times a bot is run
       console.error("🚀 ~ BaseEvaluationService ~ stopChallenge ~ error:", error.response?.data || error.message);
     }
   }
-  async switchToPhase2(botInfo: Job) {
-    try {
-        botInfo.data.phase = process.env.Phase_2;
-        const tempData = botInfo.data;
-        botInfo.update(tempData);
-        console.log(`��� Switched to phase 2`);
-    }
-    catch (error) {
-        console.log("🚀 ~ EvaluationBotProcess ~ switchToPhase2 ~ error:", error)
-    }
-}
+ 
   
 }
