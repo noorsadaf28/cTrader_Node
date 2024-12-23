@@ -93,7 +93,7 @@ export abstract class BaseAccountService implements IAccountInterface {
       // Create daily equity data
     const dailyEquityData = {
       account: traderLogin,
-      starting_daily_equity: traderResponse.balance.toString(),
+      starting_daily_equity: (parseFloat(traderResponse.balance.toString()) / 100),
       sde_date:dayjs().tz('Europe/Madrid').format('YYYY.MM.DD HH:mm:ss'), // For local time
       gmt_date: dayjs().tz('UTC').format('YYYY.MM.DD HH:mm:ss'),          // For UTC
       created_at: dayjs().toISOString(),
