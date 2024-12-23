@@ -405,7 +405,8 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       ruledata.request_type = botInfo.data.request_type;
       ruledata.metatrader = AccountConfig.METATRADER_PLATFORM,
       ruledata.status = botInfo.data.status;
-      ruledata.initial_balance = accountdata.balance.toString();
+      ruledata.initial_balance = (parseFloat(botInfo.data.Initial_balance.toString()) / 100).toFixed(2);
+
       ruledata.max_daily_loss = phaseSettings.max_daily_loss;
       ruledata.max_loss = phaseSettings.max_loss;
       ruledata.profit_target = phaseSettings.profit_target,
@@ -999,10 +1000,10 @@ private runBotCount: number = 0; // Tracks how many times a bot is run
   
       const retainedData = await this.retainImportantData(botInfo.data);
       console.log(`Switching Phase before stop bot ${retainedData.Phase}`, retainedData.Phase === process.env.testPhase);
-  
+      await this.rulesEvaluation(botInfo);  
       if (botInfo.data.status === 'Won') {
 
-        await this.rulesEvaluation(botInfo);
+        await this.IAccountInterface.UpdateAccount(botInfo.data);
         console.log('Bot status found for SenDWon', botInfo.data.status);
         await this.IBotInterface.stopBot(botInfo.data);
         // await this.stopChallenge(botInfo);

@@ -99,8 +99,8 @@ export abstract class BaseAccountService implements IAccountInterface {
       created_at: dayjs().toISOString(),
       status: 'pending',
       trading_days: '0',
-      challenge_begins: dayjs().subtract(30, 'days').format('YYYY.MM.DD'),
-      new_status: 'pending'
+      challenge_begins:(dayjs(Date.now()).format('YYYY.MM.DD')).toString(),
+      new_status: 'sent'
     };
 
     const response2 = await axios.post(xanoDailyEquityUrl, dailyEquityData);

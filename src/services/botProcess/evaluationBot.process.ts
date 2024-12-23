@@ -23,7 +23,7 @@ export class EvaluationBotProcess extends BaseBotProcess {
                 connectedPhaseData.max_total_currency = parseInt(connectedPhaseData.Initial_balance) * (connectedPhaseData.max_loss / 100)
                 connectedPhaseData.consistencyPercent = (parseInt(connectedPhaseData.consistency_value )/ 100)
                 connectedPhaseData.profitCurrency = parseInt(connectedPhaseData.Initial_balance) * (connectedPhaseData.profit_target / 100)
-                connectedPhaseData.challenge_begins = Date
+                connectedPhaseData.challenge_begins = (dayjs(Date.now()).format('YYYY.MM.DD')).toString();
                 const tempInfo = connectedPhaseData;
                 botInfo.update(tempInfo)
                 console.log("🚀 ~ EvaluationBotProcess ~ connectPhase ~ botInfo:", botInfo.data)
@@ -46,7 +46,7 @@ export class EvaluationBotProcess extends BaseBotProcess {
             botInfo.data.status = "Active";
             botInfo.data.request_type = "OnInit";
             botInfo.data.accountId = botInfo.data.traderLogin;
-            botInfo.data.challenge_begins = (dayjs(Date.now()).format('YYYY-MM-DD')).toString();
+            botInfo.data.challenge_begins = (dayjs(Date.now()).format('YYYY.MM.DD')).toString();
             botInfo.data.daily_kod = "false";
             botInfo.data.total_kod = "false";
             botInfo.data.challenge_won = "false";

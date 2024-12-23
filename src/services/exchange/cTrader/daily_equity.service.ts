@@ -97,9 +97,9 @@ export class DailyEquityService {
         const response: AxiosResponse = await this.httpService
             .get(`${this.spotwareApiUrl}/v2/webserv/traders/`, {
                 params: {
-                    from: dayjs('2024-12-08').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS'),
+                    from: dayjs('2024-12-23').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS'),
                     to: toDate,
-                    fields: 'login,balance,minEquityDaily,maxEquityDaily',
+                    fields: 'login,balance,minEquityDaily,maxEquityDaily,registrationTimestamp',
                     token: this.apiToken,
                 },
             })
@@ -125,8 +125,8 @@ export class DailyEquityService {
                   created_at: dayjs().toISOString(),
                   status: 'pending',
                   trading_days: openPositionData.tradingDays || 0,
-                  challenge_begins: dayjs().subtract(30, 'days').format('YYYY.MM.DD'), // Correct format
-                  new_status: 'pending',
+                  challenge_begins:dayjs(trader.registrationTimestamp).format('YYYY.MM.DD'), // Convert registration timestamp
+                  new_status: 'sent',
                 };
             })
         );
@@ -205,7 +205,7 @@ export class DailyEquityService {
 
   // Update the equity for traders daily
   async updateDailyEquityForTraders() {
-  const fromDate = dayjs('2024-12-10').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS');
+  const fromDate = dayjs('2024-12-23').startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS');
     const toDate = dayjs().startOf('day').format('YYYY-MM-DDTHH:mm:ss.SSS');
 
     this.logger.log(`Starting daily equity update for traders from ${fromDate} to ${toDate}`);
