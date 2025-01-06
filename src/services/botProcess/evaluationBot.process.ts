@@ -76,7 +76,9 @@ export class EvaluationBotProcess extends BaseBotProcess {
                 }
                 const {interval} = await botInfo.data;
                 this.IOrderInterface.pollPositions(botInfo);
+                console.log("Symbol found for this bot before subscribe", botInfo.data.traderLogin,botInfo.data.symbols,botInfo.data.symbolsSubscribed);
                 this.IEvaluationInterface.subscribeToSpotQuotes(botInfo);
+                console.log("Symbol found for this bot", botInfo.data.traderLogin,botInfo.data.symbols,botInfo.data.symbolsSubscribed);
                 await new Promise(resolve => setTimeout(resolve, interval * 1000));
             }
         }

@@ -105,13 +105,15 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
         (symbol) => !botInfo.data.symbolsSubscribed.includes(symbol)
       );
 
-      if (unsubscribedSymbols.length === 0) {
-        console.log("All symbols are already subscribed.");
-        return { message: "All symbols are already subscribed" };
-      }
+      // if (unsubscribedSymbols.length === 0) {
+      //   console.log(`All symbols are already subscribed for bot ${botInfo.data.traderLogin}.`);
+      //   return { message: "All symbols are already subscribed", botId: botInfo.data.traderLogin };
+      // }
 
       // Get symbol IDs for unsubscribed symbols
       const symbolIds = await this.symbolList(unsubscribedSymbols);
+       // Log the unsubscribed symbols for the bot
+    console.log(`Unsubscribed symbols for bot ${botInfo.data.traderLogin}:`, unsubscribedSymbols);
 
       // Lookup and create a SubscribeSpotQuotesReq message
       const SubscribeSpotQuotesReq = this.root.lookupType('ProtoSubscribeSpotQuotesReq');
@@ -119,6 +121,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       const ProtoMessage = this.root2.lookupType("ProtoMessage");
 
       const authPayload = SubscribeSpotQuotesReq.create({
+        bot:botInfo.data.traderLogin,
         symbolId: symbolIds,
         subscribeToSpotTimestamp: true
       });
@@ -161,6 +164,10 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
             console.log("Subscription confirmed:", responseMessage);
 
             if (responseMessage) {
+
+          // Update symbolsSubscribed with the new subscribed symbols
+          botInfo.data.symbolsSubscribed.push(...unsubscribedSymbols);
+          this.botInfo = botInfo;
               resolve({ message: "Subscription successful" });
             } else {
               reject(new Error('Unexpected response type'));
@@ -401,11 +408,11 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       const phaseSettings = PhaseSettings[botInfo.data.Phase];
       console.log("🚀 ~ BaseEvaluationService ~ rulesEvaluation ~ phaseSettings:", phaseSettings)
       ruledata.account = accountdata.login;
-      ruledata.balance = accountdata.balance.toString();
+      ruledata.balance = botInfo.data.Initial_balance;
       ruledata.request_type = botInfo.data.request_type;
       ruledata.metatrader = AccountConfig.METATRADER_PLATFORM,
       ruledata.status = botInfo.data.status;
-      ruledata.initial_balance = (parseFloat(botInfo.data.Initial_balance.toString()) / 100).toFixed(2);
+      ruledata.initial_balance = botInfo.data.Initial_balance;
 
       ruledata.max_daily_loss = phaseSettings.max_daily_loss;
       ruledata.max_loss = phaseSettings.max_loss;
@@ -483,12 +490,12 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
         console.log("🚀 ~ Bot status in checkRules for", this.botInfo.data.traderLogin, "is", isBotActive ? "ACTIVE" : "INACTIVE");
 
         if (!isBotActive) {
-            await this.unsubscribeFromSpotQuotes(this.botInfo.data.symbolsSubscribed);
+            await this.unsubscribeFromSpotQuotes(botInfo.data.symbolsSubscribed);
             console.log("⛔️ Evaluation Stopped - Bot Not Active");
             return { response: "❌ Bot Not Present..." };
         }
 
-        console.debug("checkRules started for symbolId:", symbolId);
+        console.debug("checkRules started for symbolId:",botInfo.data.traderLogin, symbolId);
   
           const symbolName = await this.symbolname(symbolId);
           console.debug("Fetched symbolName:", symbolName);
@@ -563,6 +570,8 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
                 console.warn("Check Won");
                 //await this.sendWon(this.botInfo)
                 await this.CheckWon(botInfo.data.traderLogin, botInfo )
+                
+
               }
               else {
                   console.log("✅ All KOD checks passed.");
@@ -583,16 +592,13 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
 async dailyKOD(req) {
   try {
     console.log("Checking Bot Status Inside DailyKOD", req.traderLogin,req.status);
-
     // Check if the bot is active
     if (req.status !== 'Active') {
       console.log("⚠️ Bot is not active. Skipping DailyKOD logic.", req.traderLogin);
       return false; // Skip further checks if the bot is not active
     }
-
-    
-
     // Perform the DailyKOD logic
+
     const resultValue = req.currentEquity - (req.startingDailyEquity - req.maxDailyCurrency);
     const result = resultValue < 0;
     console.log(`🚀 ~ BaseEvaluationService ~ dailyKOD ~ result:${req.traderLogin}:`, result, "Calculated Value:", resultValue);
@@ -601,17 +607,16 @@ async dailyKOD(req) {
 
     // Return the result
     return result;
-    
-  
   } catch (error) {
     console.log("🚀 ~ BaseEvaluationService ~ dailyKOD ~ error:", error);
-    return false; // Return a default value in case of errors
+    // return false; // Return a default value in case of errors
+    throw error;
   }
 }
 
   async TotalKOD(req) {
     try {
-      console.log("Checking Bot Status Inside CheckWonKOD",req.traderLogin,req.status);
+      console.log("Checking Bot Status Inside TotalKOD",req.traderLogin,req.status);
       
       if (req.status !== 'Active') {
         console.log("⚠️ Bot is not active. Skipping TotalKOD logic.",req.traderLogin);
@@ -624,7 +629,7 @@ async dailyKOD(req) {
     }
     catch (error) {
       console.log("🚀 ~ BaseEvaluationService ~ TotalKOD ~ error:", error)
-
+      throw error;
     }
   }
   async CheckWonKOD(req) {
@@ -841,9 +846,8 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       //   accountId
       // }
       const date = dayjs(Date.now()).format('YYYY-MM-DD');
-      console.log("🚀 ~ BaseEvaluationService ~ getDailyEquity ~ prevDate:", date)
       const prevDataResponse = await axios.get(`${this.xanoEquityUrl}/${accountId}/`)
-      console.log("🚀 ~ BaseEvaluationService ~ getDailyEquity ~ prevDataResponse:", prevDataResponse.data.starting_daily_equity)
+      console.log("🚀 ~ BaseEvaluationService ~ getDailyEquity ~ prevDataResponse:",date, prevDataResponse.data.starting_daily_equity)
       return prevDataResponse.data.starting_daily_equity;
       // const accountData = await this.IAccountInterface.AccountDetails(reqjson);
       // if(accountData.balance){
@@ -872,6 +876,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
         console.log('Bot status found sendDailyKOD',botInfo.data.traderLogin, botInfo.data.status);
        
       await this.IAccountInterface.UpdateAccount(botInfo.data);
+      console.log('Bot status found for DailyKOD', botInfo.data.status);
       await this.IBotInterface.stopBot(botInfo.data);
       // await this.stopChallenge(botInfo);
       }
@@ -900,6 +905,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
         console.log('Bot status found sendTotalKOD',botInfo.data.traderLogin, botInfo.data.status);
 
       await this.IAccountInterface.UpdateAccount(botInfo.data);
+      console.log('Bot status found for SendTotalKOD', botInfo.data.status);
       await this.IBotInterface.stopBot(botInfo.data);
       // await this.stopChallenge(botInfo);
       }
@@ -926,6 +932,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
         console.log('Bot status found for ConsistencyKOD',botInfo.data.traderLogin, botInfo.data.status);{
        
       await this.IAccountInterface.UpdateAccount(botInfo.data);
+      console.log('Bot status found for sendConsistencyKOD', botInfo.data.status);
       await this.IBotInterface.stopBot(botInfo.data);
       // await this.stopChallenge(botInfo);
     
@@ -958,7 +965,7 @@ async ConsistencyKOD(botInfo: Job, closedPosition) {
       .reduce((obj, key) => {
         // Divide Initial_balance by 100 if the key is 'Initial_balance'
         if (key === 'Initial_balance') {
-          obj[key] = botdata[key] / 100;
+          obj[key] = botdata[key];
         } else {
           obj[key] = botdata[key];
         }
@@ -1078,28 +1085,28 @@ private runBotCount: number = 0; // Tracks how many times a bot is run
   }
   
   
-  async stopChallenge(botInfo: Job) {
-    try {
-      // Stop the bot
-      botInfo.data.running = false;
-      const temp = botInfo.data;
-      botInfo.update(temp);
-      console.log("⛔️ Bot running Stopped in StopChallege");
+  // async stopChallenge(botInfo: Job) {
+  //   try {
+  //     // Stop the bot
+  //     botInfo.data.running = false;
+  //     const temp = botInfo.data;
+  //     botInfo.update(temp);
+  //     console.log("⛔️ Bot running Stopped in StopChallege");
   
-      // Use the trader login from botInfo
-      const traderLogin = botInfo.data.traderLogin; // Ensure traderLogin exists in botInfo.data
-      await this.IAccountInterface.UpdateAccount(traderLogin);
+  //     // Use the trader login from botInfo
+  //     const traderLogin = botInfo.data.traderLogin; // Ensure traderLogin exists in botInfo.data
+  //     await this.IAccountInterface.UpdateAccount(traderLogin);
      
   
-      // console.log(`✅ Access rights updated to NO_TRADING for trader ${traderLogin}`,response.data);;
+  //     // console.log(`✅ Access rights updated to NO_TRADING for trader ${traderLogin}`,response.data);;
    
   
-      // Additional bot stopping logic if required
-      await this.IBotInterface.stopBot(botInfo.data);
-    } catch (error) {
-      console.error("🚀 ~ BaseEvaluationService ~ stopChallenge ~ error:", error.response?.data || error.message);
-    }
-  }
+  //     // Additional bot stopping logic if required
+  //     await this.IBotInterface.stopBot(botInfo.data);
+  //   } catch (error) {
+  //     console.error("🚀 ~ BaseEvaluationService ~ stopChallenge ~ error:", error.response?.data || error.message);
+  //   }
+  // }
  
   
 }

@@ -93,7 +93,7 @@ export abstract class BaseAccountService implements IAccountInterface {
       // Create daily equity data
     const dailyEquityData = {
       account: traderLogin,
-      starting_daily_equity: (parseFloat(traderResponse.balance.toString()) / 100),
+      starting_daily_equity: traderResponse.balance,
       sde_date:dayjs().tz('Europe/Madrid').format('YYYY.MM.DD HH:mm:ss'), // For local time
       gmt_date: dayjs().tz('UTC').format('YYYY.MM.DD HH:mm:ss'),          // For UTC
       created_at: dayjs().toISOString(),
@@ -191,7 +191,7 @@ export abstract class BaseAccountService implements IAccountInterface {
     
       const accessRights = process.env.fullAccess;
       const accountType = process.env.hedged;
-      const balance = req.Initial_balance*100;
+      const balance = req.Initial_balance;
       const brokerName = process.env.brokerName;
       const depositCurrency = req.Currency;
       const groupName = process.env.groupName;

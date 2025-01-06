@@ -34,7 +34,7 @@ export abstract class BaseBotService implements IBotInterface {
             : botInfo.Challenge_type, Error: accountResponse
         }
       }
-      botInfo.Initial_balance = botInfo.Initial_balance * 100;
+      botInfo.Initial_balance = botInfo.Initial_balance;
       botInfo.traderLogin = accountResponse.traderLogin;
       botInfo.ctid = accountResponse.ctid;
       botInfo.ctidTraderAccountId = accountResponse.ctidTraderAccountId;
@@ -158,6 +158,7 @@ export abstract class BaseBotService implements IBotInterface {
 
     try {
         const { traderLogin } = body;
+        
         console.log(`🔍 Found this traderLogin: ${traderLogin}`);
         if (!traderLogin) {
             console.error("TraderLogin is missing in the request body.");

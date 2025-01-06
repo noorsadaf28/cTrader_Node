@@ -107,6 +107,8 @@ async fetchOpenPositions(login: number, botInfo: Job) {
 
         if (!botInfo.data.symbols.includes(position.symbol)) {
           botInfo.data.symbols.push(position.symbol);
+          
+
         }
 
         botInfo.data.tradingDaysSet = tradingDaysSet;
