@@ -411,6 +411,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       ruledata.balance = botInfo.data.Initial_balance;
       ruledata.request_type = botInfo.data.request_type;
       ruledata.metatrader = AccountConfig.METATRADER_PLATFORM,
+      ruledata.bot_version = botInfo.data.Bot_version;
       ruledata.status = botInfo.data.status;
       ruledata.initial_balance = botInfo.data.Initial_balance;
 

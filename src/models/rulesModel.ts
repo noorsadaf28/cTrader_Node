@@ -2,6 +2,7 @@ export class RulesRequest {
     account: string;
     request_type: string;
     metatrader: string;
+    bot_version: string;
     status: string;
     challenge_begins: string;
     challenge_ends: string;
