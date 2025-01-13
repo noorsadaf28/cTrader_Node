@@ -3,7 +3,7 @@ export enum TradingPhases {
   PHASE_1 = '1st Phase',
   PHASE_2 = '2nd Phase',
   FUNDED = 'Funded',
-  TESTPHASE = "TestPhase"
+  TESTPHASE = 'TestPhase',
 }
 
 export enum AccountConfig {
@@ -24,33 +24,21 @@ export enum AccountConfig {
 }
 
 export const PhaseSettings = {
-  [TradingPhases.PHASE_0]: {
-    max_daily_loss: "20",
-    max_loss: "40",
-    profit_target: "5",
-    minimum_trading_days: "0",
-    max_trading_days: "0",
-    max_daily_currency: "",
-    max_total_currency: "",
-      starting_daily_equity: "",
-      leverageInCents: "1:2" ,
-      consistency_kod:"",
-      consistency_value:"25"
-  },
-  [TradingPhases.PHASE_1]: {
-      max_daily_loss: "1",
-      max_loss: "3",
-      profit_target: "2",
+  '2-Phases': {
+    [TradingPhases.PHASE_1]: {
+      max_daily_loss: "0.1",
+      max_loss: "30",
+      profit_target: "0.01",
       minimum_trading_days: "0",
       max_trading_days: "0",
       max_daily_currency: "",
       max_total_currency: "",
       starting_daily_equity: "",
       leverageInCents: "1:100", // 1:100 leverage
-      consistency_kod:"",
-      consistency_value:"2500"
-  },
-  [TradingPhases.PHASE_2]: {
+      consistency_kod: "",
+      consistency_value: "25"
+    },
+    [TradingPhases.PHASE_2]: {
       max_daily_loss: "5",
       max_loss: "10",
       profit_target: "5",
@@ -60,10 +48,10 @@ export const PhaseSettings = {
       max_total_currency: "",
       starting_daily_equity: "",
       leverageInCents: "1:100",// 1:100 leverage
-      consistency_kod:"",
-      consistency_value:"25"
-  },
-  [TradingPhases.FUNDED]: {
+      consistency_kod: "",
+      consistency_value: "25"
+    },
+    [TradingPhases.FUNDED]: {
       max_daily_loss: "5",
       max_loss: "10",
       profit_target: "999999999",//no profit target in this phase
@@ -73,20 +61,92 @@ export const PhaseSettings = {
       max_total_currency: "",
       starting_daily_equity: "",
       leverageInCents: "1:30",// 1:30 leverage
-      consistency_kod:"",
-      consistency_value:"999999999"
+      consistency_kod: "",
+      consistency_value: "999999999"
+    },
   },
-  [TradingPhases.TESTPHASE]: {
-    max_daily_loss: "0.01",
-    max_loss: "0.5",
-    profit_target: "0.005",
-    minimum_trading_days: "0",
-    max_trading_days: "0",
-    max_daily_currency: "",
-    max_total_currency: "",
-    starting_daily_equity: "",
-    leverageInCents: "1:100",// 1:100 leverage
-    consistency_kod:"",
-    consistency_value:"25"
-}
+  '3-Phases': {
+    [TradingPhases.PHASE_0]: {
+      max_daily_loss: "20",
+      max_loss: "40",
+      profit_target: "5",
+      minimum_trading_days: "0",
+      max_trading_days: "0",
+      max_daily_currency: "",
+      max_total_currency: "",
+      starting_daily_equity: "",
+      leverageInCents: "1:2",
+      consistency_kod: "",
+      consistency_value: "25"
+    },
+    [TradingPhases.PHASE_1]: {
+      max_daily_loss: "1",
+      max_loss: "3",
+      profit_target: "2",
+      minimum_trading_days: "0",
+      max_trading_days: "0",
+      max_daily_currency: "",
+      max_total_currency: "",
+      starting_daily_equity: "",
+      leverageInCents: "1:100", // 1:100 leverage
+      consistency_kod: "",
+      consistency_value: "2500"//      consistency_value: 25,
+    },
+    [TradingPhases.PHASE_2]: {
+      max_daily_loss: "5",
+      max_loss: "10",
+      profit_target: "5",
+      minimum_trading_days: "0",
+      max_trading_days: "0",
+      max_daily_currency: "",
+      max_total_currency: "",
+      starting_daily_equity: "",
+      leverageInCents: "1:100",// 1:100 leverage
+      consistency_kod: "",
+      consistency_value: "25"
+    },
+    [TradingPhases.FUNDED]: {
+      max_daily_loss: "5",
+      max_loss: "10",
+      profit_target: "999999999",//no profit target in this phase
+      minimum_trading_days: "0",
+      max_trading_days: "0",
+      max_daily_currency: "",
+      max_total_currency: "",
+      starting_daily_equity: "",
+      leverageInCents: "1:30",// 1:30 leverage
+      consistency_kod: "",
+      consistency_value: "999999999"
+    },
+  },
+  '1-Phase': {
+    [TradingPhases.FUNDED]: {
+      max_daily_loss: "5",
+      max_loss: "10",
+      profit_target: "999999999",//no profit target in this phase
+      minimum_trading_days: "0",
+      max_trading_days: "0",
+      max_daily_currency: "",
+      max_total_currency: "",
+      starting_daily_equity: "",
+      leverageInCents: "1:30",// 1:30 leverage
+      consistency_kod: "",
+      consistency_value: "999999999"
+    },
+  }, 
+  'Test-Phases': {
+    [TradingPhases.TESTPHASE]: {
+      max_daily_loss: "0.01",
+      max_loss: "0.5",
+      profit_target: "0.005",
+      minimum_trading_days: "0",
+      max_trading_days: "0",
+      max_daily_currency: "",
+      max_total_currency: "",
+      starting_daily_equity: "",
+      leverageInCents: "1:100",// 1:100 leverage
+      consistency_kod: "",
+      consistency_value: "25"
+    },
+  },
 };

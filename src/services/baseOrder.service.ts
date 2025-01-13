@@ -145,6 +145,7 @@ async fetchOpenPositions(login: number, botInfo: Job) {
         console.error(`Failed to fetch closed positions for account ${login}. Status: ${response.status}`);
         throw new Error(`Failed to fetch closed positions for account ${login}.`);
       }
+      await this.IEvaluationInterface.checkAdditionalRules(botInfo, response.data);
       if(botInfo.data.Bot_version === '2'){
         console.log("here1")
         if(botInfo.data.Phase === process.env.Phase_1 || botInfo.data.Phase === process.env.Phase_2){

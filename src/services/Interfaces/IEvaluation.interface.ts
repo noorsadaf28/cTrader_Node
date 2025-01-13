@@ -8,9 +8,10 @@ export interface IEvaluationInterface{
     // unsubscribeFromSpotQuotes(subscriptionId);
     subscribeToSpotQuotes(botInfo)
     rulesEvaluation(body);
-    dailyKOD(req)
+    // dailyKOD(req)
     symbolList (symbols)
     getDailyEquity(accountId)
+    checkAdditionalRules(botInfo,response)
     ConsistencyKOD(botInfo, closedPosition)
     unsubscribeFromSpotQuotes(botInfo)
 }

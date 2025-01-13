@@ -1,6 +1,8 @@
 import { Job } from "bull";
 import { PhaseSettings } from "src/data/rulesData";
 import { BaseBotProcess } from "src/services/baseBotprocess.service";
+import { TradingPhases } from 'src/data/rulesData'; // Adjust the path as needed based on your project structure
+
 import * as dayjs from 'dayjs';
 export class EvaluationBotProcess extends BaseBotProcess {
 
@@ -15,28 +17,76 @@ export class EvaluationBotProcess extends BaseBotProcess {
     }
     async connectPhase(botInfo: Job) {
         try {
-            const phaseSettings = PhaseSettings[botInfo.data.Phase];
-            if (phaseSettings) {
-                const botData = botInfo.data;
-                const connectedPhaseData = Object.assign({}, botData, phaseSettings);
-                connectedPhaseData.max_daily_currency = parseInt(connectedPhaseData.Initial_balance) * (connectedPhaseData.max_daily_loss / 100)
-                connectedPhaseData.max_total_currency = parseInt(connectedPhaseData.Initial_balance) * (connectedPhaseData.max_loss / 100)
-                connectedPhaseData.consistencyPercent = (parseInt(connectedPhaseData.consistency_value )/ 100)
-                connectedPhaseData.profitCurrency = parseInt(connectedPhaseData.Initial_balance) * (connectedPhaseData.profit_target / 100)
-                connectedPhaseData.challenge_begins = (dayjs(Date.now()).format('YYYY.MM.DD')).toString();
-                const tempInfo = connectedPhaseData;
-                botInfo.update(tempInfo)
-                console.log("🚀 ~ EvaluationBotProcess ~ connectPhase ~ botInfo:", botInfo.data)
-                return true;
-            }
-            else {
-                return false;
-            }
+          console.log("🚀 ~ connectPhase ~ Initial botInfo:", botInfo.data);
+      
+          // Extract Challenge Type and Phase
+          const challengeType = botInfo.data.Challenge_type; // e.g., '2-Phases' or '3-Phases'
+          let currentPhase = botInfo.data.Phase || 'NULL';
+      
+          // Map Challenge Type to Phase Transition Logic
+          const phaseTransitionMap = {
+            '2-Phases': {
+              'NULL': TradingPhases.PHASE_1, // Initial phase for 2-Phases Challenge
+              [TradingPhases.PHASE_1]: TradingPhases.PHASE_2,
+              [TradingPhases.PHASE_2]: TradingPhases.FUNDED,
+            },
+            '3-Phases': {
+              'NULL': TradingPhases.PHASE_0, // Initial phase for 3-Phases Challenge
+              [TradingPhases.PHASE_0]: TradingPhases.PHASE_1,
+              [TradingPhases.PHASE_1]: TradingPhases.PHASE_2,
+              [TradingPhases.PHASE_2]: TradingPhases.FUNDED,
+            },
+            'Test-Phases': {
+              'NULL': TradingPhases.TESTPHASE, // Initial phase for Test-Phases Challenge
+              [TradingPhases.TESTPHASE]: TradingPhases.FUNDED,
+            },
+          };
+      
+          // Determine the next phase
+          let nextPhase = phaseTransitionMap[challengeType]?.[currentPhase];
+          if (!nextPhase) {
+            console.error(`❌ ~ connectPhase ~ Invalid Challenge Type: ${challengeType} or Phase: ${currentPhase}`);
+            return false;
+          }
+      
+          console.log(`✅ ~ connectPhase ~ Determined next phase for ${challengeType}: ${nextPhase}`);
+      
+          // Fetch Phase Settings
+        //   const phaseSettings = PhaseSettings[nextPhase];
+          const phaseSettings = PhaseSettings[challengeType]?.[nextPhase];
+          if (!phaseSettings) {
+            console.error(`❌ ~ connectPhase ~ No settings found for Phase: ${nextPhase}`);
+            return false;
+          }
+      
+          console.log(`✅ ~ connectPhase ~ Retrieved phase settings for ${challengeType} - ${nextPhase}:`, phaseSettings);
+      
+          // Merge the fetched phase settings with bot data
+          const connectedPhaseData = {
+            ...botInfo.data,
+            ...phaseSettings,
+            Phase: nextPhase, // Update the bot's phase
+          };
+      
+          // Calculate Derived Fields
+          connectedPhaseData.max_daily_currency = parseInt(connectedPhaseData.Initial_balance) * (connectedPhaseData.max_daily_loss / 100);
+          connectedPhaseData.max_total_currency = parseInt(connectedPhaseData.Initial_balance) * (connectedPhaseData.max_loss / 100);
+          connectedPhaseData.consistencyPercent = parseInt(connectedPhaseData.consistency_value) / 100;
+          connectedPhaseData.profitCurrency = parseInt(connectedPhaseData.Initial_balance) * (connectedPhaseData.profit_target / 100);
+          connectedPhaseData.challenge_begins = dayjs(Date.now()).format('YYYY.MM.DD');
+      
+                 // Update botInfo with connected phase data
+          const tempInfo = connectedPhaseData;
+          botInfo.update(tempInfo);
+      
+          console.log("✅ ~ connectPhase ~ Updated botInfo:", botInfo.data);
+          return true;
+        } catch (error) {
+          console.error("❌ ~ connectPhase ~ Error:", error);
+          return false;
         }
-        catch (error) {
-            console.log("🚀 ~ EvaluationBotProcess ~ connectPhase ~ error:", error)
-        }
-    }
+      }
+      
     async handleBot(botInfo: Job) {
         this.stopBot(botInfo);
     }
