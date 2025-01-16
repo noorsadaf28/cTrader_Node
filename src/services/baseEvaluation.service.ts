@@ -506,10 +506,10 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
         isBotActive ? "ACTIVE" : "INACTIVE"
       );
 
-      if (!isBotActive) {
+      if (botInfo.data.status !== "Active" && !isBotActive) {
         await this.unsubscribeFromSpotQuotes(botInfo.data.symbolsSubscribed);
         console.log("⛔️ Evaluation Stopped - Bot Not Active");
-        return { response: "❌ Bot Not Present..." };
+        return { response: "❌ Bot Not Active for CheckRules..." };
       }
 
       const symbolName = await this.symbolname(symbolId);
@@ -600,33 +600,232 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
         };
       });
   }
+  // async calculateCurrentEquity(botInfo: Job, tick: any): Promise<number> {
+  //   try {
+  //     const { bid, ask, symbolId } = tick;
+
+  //     // // Validate tick data
+  //     // if (!bid || !ask || !symbolId) {
+  //     //   console.error("❌ ~ calculateCurrentEquity ~ Invalid tick data: Missing bid/ask/symbolId");
+  //     //   throw new Error("Invalid tick data: Missing bid/ask/symbolId");
+  //     // }
+
+  //     // Scale bid and ask prices
+  //     const bidPrice = parseFloat(bid) / 100000;
+  //     const askPrice = parseFloat(ask) / 100000;
+  //     console.log(`🚀 ~ Bid Price: ${bidPrice}, Ask Price: ${askPrice}, Symbol ID: ${symbolId}`);
+
+  //     const { starting_daily_equity, Initial_balance } = botInfo.data;
+  //     const login = botInfo.data.traderLogin;
+  //     console.log(`🚀 ~ Trader Login: ${login}, Initial Balance: ${Initial_balance}, Starting Daily Equity: ${starting_daily_equity}`);
+
+  //     // Fetch the symbol name for the current tick
+  //     const tickSymbolName = await this.symbolname(symbolId);
+  //     console.log(`🚀 ~ Tick Symbol Name: ${tickSymbolName}`);
+
+  //     if (!tickSymbolName) {
+  //       console.error(`❌ ~ Unable to fetch symbol name for symbolId: ${symbolId}`);
+  //       throw new Error(`Invalid symbolId: ${symbolId}`);
+  //     }
+
+  //     // Fetch open positions for this bot
+  //     const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/openPositions`, {
+  //       headers: { Authorization: `Bearer ${this.apiToken}` },
+  //       params: { token: this.apiToken, login },
+  //     });
+  //     const openPositions = this.parseOpenPositionsCsv(response.data);
+
+  //     // Start with the initial balance or starting daily equity
+  //     let currentEquity = parseFloat(starting_daily_equity) || parseFloat(Initial_balance) || 0;
+  //     console.log(`🚀 ~ Initial Balance: ${currentEquity}`);
+
+  //     // Loop through all open positions to calculate unrealized PnL
+  //     for (const position of openPositions) {
+  //       const { entryPrice, volume, direction, symbol, positionId } = position;
+  //       console.log(`🚀 ~ Checking positionnnn:`, position);
+
+  //       // Validate entryPrice and volume
+  //       if (isNaN(entryPrice) || isNaN(volume)) {
+  //         console.error(`❌ ~ Invalid entryPrice or volume for position:`, position);
+  //         continue;
+  //       }
+
+  //       let unrealizedPnL = 0;
+
+  //       // If the position's symbol matches the tick's symbol, calculate the PnL
+  //       if (symbol === tickSymbolName) {
+  //         if (direction === "BUY") {
+  //           // Validate tick data
+  //     if (!bid || !symbolId) {
+  //       console.error("❌ ~ calculateCurrentEquity ~ Invalid tick data: Missing bidPrice");
+  //       throw new Error("Invalid tick data: Missing bid/ask/symbolId");
+  //     }
+  //           unrealizedPnL = (bidPrice - entryPrice) * volume;
+  //         } else if (direction === "SELL") {
+  //           // Validate tick data
+  //     if (!ask || !symbolId) {
+  //       console.error("❌ ~ calculateCurrentEquity ~ Invalid tick data: Missing askPrice");
+  //       throw new Error("Invalid tick data: Missing bid/ask/symbolId");
+  //     }
+  //           unrealizedPnL = (entryPrice - askPrice) * volume;
+  //         }
+
+  //         console.log(
+  //           `🚀 ~ Unrealized PnL for position [${positionId}]: ${unrealizedPnL}`
+  //         );
+  //       } else {
+  //         // If no tick for the position's symbol, log the mismatch
+  //         console.warn(
+  //           `⚠️ Symbol mismatch for position ${positionId}: Tick (${tickSymbolName}) != Position (${symbol})`
+  //         );
+  //         continue; // Skip calculation for this position
+  //       }
+
+  //       // Update current equity with the unrealized PnL
+  //       currentEquity += unrealizedPnL;
+
+  //       console.log(
+  //         `Updated Current Equity after position [${positionId}]:`,
+  //         currentEquity
+  //       );
+  //     }
+
+  //     console.debug("Final Calculated Current Equity:", currentEquity);
+  //     return currentEquity;
+  //   } catch (error) {
+  //     console.error("❌ ~ calculateCurrentEquity ~ Error:", error);
+  //     throw error;
+  //   }
+  // }
+
+
+
+
+  // async calculateCurrentEquity(botInfo: Job, tick: any): Promise<number> {
+  //   try {
+  //     const { bid, ask, symbolId } = tick;
+
+  //     // Scale bid and ask prices
+  //     const bidPrice = bid ? parseFloat(bid) / 100000 : null;
+  //     const askPrice = ask ? parseFloat(ask) / 100000 : null;
+
+  //     console.log(`🚀 ~ Bid Price: ${bidPrice}, Ask Price: ${askPrice}, Symbol ID: ${symbolId}`);
+
+  //     const { starting_daily_equity, Initial_balance } = botInfo.data;
+  //     const login = botInfo.data.traderLogin;
+
+  //     console.log(
+  //       `🚀 ~ Trader Login: ${login}, Initial Balance: ${Initial_balance}, Starting Daily Equity: ${starting_daily_equity}`
+  //     );
+
+  //     // Fetch the symbol name for the current tick
+  //     const tickSymbolName = await this.symbolname(symbolId);
+
+  //     if (!tickSymbolName) {
+  //       console.error(`❌ ~ Unable to fetch symbol name for symbolId: ${symbolId}`);
+  //       throw new Error(`Invalid symbolId: ${symbolId}`);
+  //     }
+
+  //     console.log(`🚀 ~ Tick Symbol Name: ${tickSymbolName}`);
+
+  //     // Fetch open positions for this bot
+  //     const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/openPositions`, {
+  //       headers: { Authorization: `Bearer ${this.apiToken}` },
+  //       params: { token: this.apiToken, login },
+  //     });
+  //     const openPositions = this.parseOpenPositionsCsv(response.data);
+
+  //     // Start with the initial balance or starting daily equity
+  //     let currentEquity = parseFloat(starting_daily_equity) || parseFloat(Initial_balance) || 0;
+
+  //     console.log(`🚀 ~ Initial Balance: ${currentEquity}`);
+
+  //     // Loop through all open positions to calculate unrealized PnL
+  //     for (const position of openPositions) {
+  //       const { entryPrice, volume, direction, symbol, positionId } = position;
+
+  //       console.log(`🚀 ~ Checking positionnnn:`, position);
+
+  //       // Validate entryPrice and volume
+  //       if (isNaN(entryPrice) || isNaN(volume)) {
+  //         console.error(`❌ ~ Invalid entryPrice or volume for position:`, position);
+  //         continue;
+  //       }
+
+  //       // If the position's symbol matches the tick's symbol, calculate the PnL
+  //       if (symbol === tickSymbolName) {
+  //         let unrealizedPnL = 0;
+
+  //         if (direction === "BUY") {
+  //           if (bidPrice === null) {
+  //             console.error("❌ ~ calculateCurrentEquity ~ Missing bidPrice for BUY position.");
+  //             throw new Error("Invalid tick data: Missing bidPrice for BUY position.");
+  //           }
+  //           unrealizedPnL = (bidPrice - entryPrice) * volume;
+  //         } else if (direction === "SELL") {
+  //           if (askPrice === null) {
+  //             console.error("❌ ~ calculateCurrentEquity ~ Missing askPrice for SELL position.");
+  //             throw new Error("Invalid tick data: Missing askPrice for SELL position.");
+  //           }
+  //           unrealizedPnL = (entryPrice - askPrice) * volume;
+  //         }
+
+  //         console.log(
+  //           `🚀 ~ Unrealized PnL for position [${positionId}]: ${unrealizedPnL}`
+  //         );
+
+  //         // Update current equity with the unrealized PnL
+  //         currentEquity += unrealizedPnL;
+
+  //         console.log(
+  //           `Updated Current Equity after position [${positionId}]:`,
+  //           currentEquity
+  //         );
+  //       } else {
+  //         console.warn(
+  //           `⚠️ Symbol mismatch for position ${positionId}: Tick (${tickSymbolName}) != Position (${symbol})`
+  //         );
+  //       }
+  //     }
+
+  //     console.debug("Final Calculated Current Equity:", currentEquity);
+  //     return currentEquity;
+  //   } catch (error) {
+  //     console.error("❌ ~ calculateCurrentEquity ~ Error:", error);
+  //     throw error;
+  //   }
+  // }
+
+
+
+
+
+
   async calculateCurrentEquity(botInfo: Job, tick: any): Promise<number> {
     try {
       const { bid, ask, symbolId } = tick;
 
-      // Validate tick data
-      if (!bid || !ask || !symbolId) {
-        console.error("❌ ~ calculateCurrentEquity ~ Invalid tick data: Missing bid/ask/symbolId");
-        throw new Error("Invalid tick data: Missing bid/ask/symbolId");
-      }
-
       // Scale bid and ask prices
-      const bidPrice = parseFloat(bid) / 100000;
-      const askPrice = parseFloat(ask) / 100000;
+      const bidPrice = bid ? parseFloat(bid) / 100000 : null;
+      const askPrice = ask ? parseFloat(ask) / 100000 : null;
       console.log(`🚀 ~ Bid Price: ${bidPrice}, Ask Price: ${askPrice}, Symbol ID: ${symbolId}`);
 
       const { starting_daily_equity, Initial_balance } = botInfo.data;
       const login = botInfo.data.traderLogin;
-      console.log(`🚀 ~ Trader Login: ${login}, Initial Balance: ${Initial_balance}, Starting Daily Equity: ${starting_daily_equity}`);
+
+      console.log(
+        `🚀 ~ Trader Login: ${login}, Initial Balance: ${Initial_balance}, Starting Daily Equity: ${starting_daily_equity}`
+      );
 
       // Fetch the symbol name for the current tick
       const tickSymbolName = await this.symbolname(symbolId);
-      console.log(`🚀 ~ Tick Symbol Name: ${tickSymbolName}`);
 
       if (!tickSymbolName) {
         console.error(`❌ ~ Unable to fetch symbol name for symbolId: ${symbolId}`);
-        throw new Error(`Invalid symbolId: ${symbolId}`);
+        return parseFloat(starting_daily_equity) || parseFloat(Initial_balance) || 0; // Return current equity as is
       }
+
+      console.log(`🚀 ~ Tick Symbol Name: ${tickSymbolName}`);
 
       // Fetch open positions for this bot
       const response = await axios.get(`${this.spotwareApiUrl}/v2/webserv/openPositions`, {
@@ -642,42 +841,51 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       // Loop through all open positions to calculate unrealized PnL
       for (const position of openPositions) {
         const { entryPrice, volume, direction, symbol, positionId } = position;
+
         console.log(`🚀 ~ Checking positionnnn:`, position);
 
         // Validate entryPrice and volume
         if (isNaN(entryPrice) || isNaN(volume)) {
           console.error(`❌ ~ Invalid entryPrice or volume for position:`, position);
-          continue;
+          continue; // Skip this position
         }
-
-        let unrealizedPnL = 0;
 
         // If the position's symbol matches the tick's symbol, calculate the PnL
         if (symbol === tickSymbolName) {
+          let unrealizedPnL = 0;
+
           if (direction === "BUY") {
+            // Skip calculation if bidPrice is missing
+            if (!bidPrice) {
+              console.warn(`⚠️ Skipping BUY position [${positionId}]: Missing bidPrice`);
+              continue;
+            }
             unrealizedPnL = (bidPrice - entryPrice) * volume;
           } else if (direction === "SELL") {
+            // Skip calculation if askPrice is missing
+            if (!askPrice) {
+              console.warn(`⚠️ Skipping SELL position [${positionId}]: Missing askPrice`);
+              continue;
+            }
             unrealizedPnL = (entryPrice - askPrice) * volume;
           }
 
           console.log(
             `🚀 ~ Unrealized PnL for position [${positionId}]: ${unrealizedPnL}`
           );
+
+          // Update current equity with the unrealized PnL
+          currentEquity += unrealizedPnL;
+
+          console.log(
+            `Updated Current Equity after position [${positionId}]:`,
+            currentEquity
+          );
         } else {
-          // If no tick for the position's symbol, log the mismatch
           console.warn(
             `⚠️ Symbol mismatch for position ${positionId}: Tick (${tickSymbolName}) != Position (${symbol})`
           );
-          continue; // Skip calculation for this position
         }
-
-        // Update current equity with the unrealized PnL
-        currentEquity += unrealizedPnL;
-
-        console.log(
-          `Updated Current Equity after position [${positionId}]:`,
-          currentEquity
-        );
       }
 
       console.debug("Final Calculated Current Equity:", currentEquity);
@@ -687,6 +895,8 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       throw error;
     }
   }
+  5
+
 
   async checkAdditionalRules(botInfo: Job) {
     try {
@@ -764,7 +974,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
 
       if (req.status !== 'Active') {
         console.log("⚠️ Bot is not active. Skipping TotalKOD logic.");
-        
+
         return false;
       }
 
@@ -990,11 +1200,9 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       botInfo.data.challenge_ends = dayjs(Date.now()).format('YYYY-MM-DD');
       botInfo.data.daily_kod = "true",
         botInfo.data.total_kod = "false"
-
+      botInfo.data.accessRights = "NO_TRADING";
 
       await this.rulesEvaluation(botInfo);
-
-
       if (botInfo.data.status === 'Failed') {
         console.log('Bot status found sendDailyKOD', botInfo.data.traderLogin, botInfo.data.status);
 
@@ -1031,6 +1239,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
         console.log('Bot status found for SendTotalKOD', botInfo.data.status);
         await this.IBotInterface.stopBot(botInfo.data);
         // await this.stopChallenge(botInfo);
+
       }
       return;
 
@@ -1049,6 +1258,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
         botInfo.data.total_kod = "false",
         botInfo.data.consistency_kod = "true"
       botInfo.data.accessRights = "NO_TRADING"
+
       await this.rulesEvaluation(botInfo);
 
       if (botInfo.data.status === 'Failed') {
@@ -1057,6 +1267,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
           await this.IAccountInterface.UpdateAccount(botInfo.data);
           console.log('Bot status found for sendConsistencyKOD', botInfo.data.status);
           await this.IBotInterface.stopBot(botInfo.data);
+
           // await this.stopChallenge(botInfo);
 
         }
@@ -1139,6 +1350,11 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
         // await this.stopChallenge(botInfo);
         console.log(`Switching from after stopbot ${retainedData.Phase}`, retainedData.Phase === process.env.testPhase);
         console.log(`Stopping bot for phase: ${botInfo.data.Phase}`);
+        // Determine if the bot is in the last phase
+        if (botInfo.data.Phase === process.env.Phase_2 || botInfo.data.Phase === process.env.Funded) {
+          console.log("🚀 Bot is in the last phase (Phase 2). No further RunBot will be triggered.");
+          return; // Exit without triggering the next phase
+        }
 
         // // Initialize a variable to track whether a bot should be run
         // let nextPhase: string | undefined;

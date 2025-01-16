@@ -25,20 +25,27 @@ export class EvaluationBotProcess extends BaseBotProcess {
       
           // Map Challenge Type to Phase Transition Logic
           const phaseTransitionMap = {
+            '1-Phase': {
+              'NULL': TradingPhases.PHASE_1, // Initial phase for 1-Phases Challenge
+              
+            },  //
             '2-Phases': {
               'NULL': TradingPhases.PHASE_1, // Initial phase for 2-Phases Challenge
               [TradingPhases.PHASE_1]: TradingPhases.PHASE_2,
-              [TradingPhases.PHASE_2]: TradingPhases.FUNDED,
+              // [TradingPhases.PHASE_2]: TradingPhases.FUNDED,
             },
             '3-Phases': {
               'NULL': TradingPhases.PHASE_0, // Initial phase for 3-Phases Challenge
               [TradingPhases.PHASE_0]: TradingPhases.PHASE_1,
               [TradingPhases.PHASE_1]: TradingPhases.PHASE_2,
-              [TradingPhases.PHASE_2]: TradingPhases.FUNDED,
+              // [TradingPhases.PHASE_2]: TradingPhases.FUNDED,
             },
             'Test-Phases': {
               'NULL': TradingPhases.TESTPHASE, // Initial phase for Test-Phases Challenge
               [TradingPhases.TESTPHASE]: TradingPhases.FUNDED,
+            },
+            'Funded-Phases': {
+              'NULL': TradingPhases.FUNDED, // Initial phase for FUNDEDED-Phases Challenge
             },
           };
       
@@ -87,9 +94,9 @@ export class EvaluationBotProcess extends BaseBotProcess {
         }
       }
       
-    async handleBot(botInfo: Job) {
-        this.stopBot(botInfo);
-    }
+    // async handleBot(botInfo: Job) {
+    //     this.stopBot(botInfo);
+    // }
     async sendOnInit(botInfo: Job) {
         try {
 

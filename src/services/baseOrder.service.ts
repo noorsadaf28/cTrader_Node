@@ -61,7 +61,6 @@ async pollPositions(botInfo: Job) {
     // Fetch and update closed positions
     const closedPositions = await this.fetchClosedPositions(login, botInfo);
     await this.updateXanoWithPositions(openPositionsData.openPositions, closedPositions);
-
     return { message: `Polling started for account ${login}` };
   } catch (error) {
     this.logger.error(`Error during polling: ${error.message}`);

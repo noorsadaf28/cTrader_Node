@@ -37,7 +37,8 @@ export abstract class BaseBotProcess implements IBotProcessInterface{
     abstract connectPhase(botInfo: Job);
     async stopBot(botInfo:Job){
         try{
-            this.IBotInterface.stopBot(botInfo);
+            await this.IEvaluationInterface.unsubscribeFromSpotQuotes(botInfo.data.symbolsSubscribed);
+            await this.IBotInterface.stopBot(botInfo);
         }
         catch(error){
             console.log("🚀 ~ BaseBotProcess ~ stopBot ~ error:", error)
