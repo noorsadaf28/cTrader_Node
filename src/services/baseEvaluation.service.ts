@@ -835,7 +835,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       const openPositions = this.parseOpenPositionsCsv(response.data);
 
       // Start with the initial balance or starting daily equity
-      let currentEquity = parseFloat(starting_daily_equity) || parseFloat(Initial_balance) || 0;
+      let currentEquity = await this.getCurrentEquity(botInfo.data.traderLogin);
       console.log(`🚀 ~ Initial Balance: ${currentEquity}`);
 
       // Loop through all open positions to calculate unrealized PnL
