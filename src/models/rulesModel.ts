@@ -27,6 +27,7 @@ export class RulesRequest {
     ea_date: string;
     ea_datetime: string;
     starting_daily_equity: string;
+    currentEquity: string;
     extend_challenge: string;
     challenge_extra_days: string;
     profit_to_extend: string;
