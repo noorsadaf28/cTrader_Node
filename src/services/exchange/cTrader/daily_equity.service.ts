@@ -21,7 +21,7 @@ export class DailyEquityService {
   private lastFetchedData: any[] = [];
   private botInfo:Job;
 
-  constructor(private readonly httpService: HttpService, @Inject('IOrderInterface')private readonly IOrderInterface : IOrderInterface) {
+  constructor(private readonly httpService: HttpService) {
     this.spotwareApiUrl = process.env.SPOTWARE_API_URL;
     this.apiToken = process.env.SPOTWARE_API_TOKEN;
     this.xanoEquityUrl = process.env.XANO_API_EQUITYURL;
@@ -115,7 +115,7 @@ export class DailyEquityService {
 
         const mappedData = await Promise.all(
             response.data.trader.map(async (trader) => {
-                const openPositionData = await this.IOrderInterface.fetchOpenPositions(trader.login, this.botInfo);
+                // const openPositionData = await this.IOrderInterface.fetchOpenPositions(trader.login, this.botInfo);
 
                 return {
                   account: trader.login,
