@@ -429,7 +429,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
         ruledata.bot_version = botInfo.data.Bot_version;
       ruledata.status = botInfo.data.status;
       ruledata.initial_balance = botInfo.data.Initial_balance;
-ruledata.currentEquity=botInfo.data.currentEquity;
+      ruledata.currentEquity = botInfo.data.currentEquity || null;
       ruledata.max_daily_loss = phaseSettings.max_daily_loss;
       ruledata.max_loss = phaseSettings.max_loss;
       ruledata.profit_target = phaseSettings.profit_target,
@@ -437,7 +437,7 @@ ruledata.currentEquity=botInfo.data.currentEquity;
         ruledata.max_trading_days = phaseSettings.max_trading_days,
         ruledata.max_daily_currency = botInfo.data.max_daily_currency.toString(),
         ruledata.max_total_currency = botInfo.data.max_total_currency.toString(),
-        ruledata.starting_daily_equity = botInfo.data.starting_daily_equity,
+        ruledata.starting_daily_equity = botInfo.data.starting_daily_equity || null,
         ruledata.phase = botInfo.data.Phase;
       ruledata.challenge_won = botInfo.data.challenge_won;
       ruledata.challenge_ends = botInfo.data.challenge_ends;
