@@ -523,7 +523,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
 
         const startingDailyEquity = await this.getDailyEquity(botInfo.data.traderLogin);
         console.debug("Starting daily equity fetched:", startingDailyEquity);
-
+        
         const maxDailyCurrency = parseFloat(botInfo.data.max_daily_currency) || 0;
         console.debug("Max daily currency:", maxDailyCurrency);
 
@@ -552,7 +552,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
         // Handle KOD checks
         if (checkDailyKOD) {
           botInfo.data.starting_daily_equity=startingDailyEquity;
-          botInfo.data.currentEquity=currentEquityforDailyKOD;
+        botInfo.data.currentEquity=currentEquityforDailyKOD;
           console.warn("❌ User failed Daily KOD:", checkDailyKOD, botInfo.data.traderLogin);
 
           await this.sendDailyKOD(botInfo);
@@ -905,6 +905,10 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       console.debug("checkAdditionalRules started for:", botInfo.data.traderLogin);
       const currentEquity = await this.getCurrentEquity(botInfo.data.traderLogin);
       console.debug("Current equity fetched:", currentEquity);
+      const startingDailyEquity = await this.getDailyEquity(botInfo.data.traderLogin);
+      console.debug("Starting daily equity fetched:", startingDailyEquity);
+      botInfo.data.starting_daily_equity=startingDailyEquity;
+        botInfo.data.currentEquity=currentEquity;
       const initial_balance = parseInt(botInfo.data.Initial_balance);
       const maxTotalCurrency = parseInt(botInfo.data.max_total_currency);
       const profitCurrency = parseInt(botInfo.data.profitCurrency);
@@ -918,6 +922,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
 
       const dataJson = {
         currentEquity,
+        startingDailyEquity,
         initial_balance,
         maxTotalCurrency,
         profitCurrency,
@@ -1353,7 +1358,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
         console.log(`Switching from after stopbot ${retainedData.Phase}`, retainedData.Phase === process.env.testPhase);
         console.log(`Stopping bot for phase: ${botInfo.data.Phase}`);
         // Determine if the bot is in the last phase
-        if (botInfo.data.Phase === process.env.Phase_2 || botInfo.data.Phase === process.env.Funded) {
+        if (botInfo.data.Phase === process.env.Phase_2 || botInfo.data.Phase === process.env.Funded || botInfo.data.Challenge_type ==='1-Phase') {
           console.log("🚀 Bot is in the last phase (Phase 2). No further RunBot will be triggered.");
           return; // Exit without triggering the next phase
         }
