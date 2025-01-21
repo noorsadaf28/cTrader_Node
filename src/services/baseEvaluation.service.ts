@@ -506,7 +506,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
         isBotActive ? "ACTIVE" : "INACTIVE"
       );
 
-      if (botInfo.data.status !== "Active" && !isBotActive) {
+      if (botInfo.data.status !== "Active" || !isBotActive) {
         await this.unsubscribeFromSpotQuotes(botInfo.data.symbolsSubscribed);
         console.log("⛔️ Evaluation Stopped - Bot Not Active");
         return { response: "❌ Bot Not Active for CheckRules..." };
@@ -1299,27 +1299,33 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       "ChallengeID",
       "Phase"
     ];
-
+  
     // Create a filtered object with only retained fields
     const retainedData = Object.keys(botdata)
       .filter((key) => fieldsToRetain.includes(key))
       .reduce((obj, key) => {
         // Divide Initial_balance by 100 if the key is 'Initial_balance'
-        if (key === 'Initial_balance') {
+        if (key === "Initial_balance") {
           obj[key] = botdata[key];
         } else {
           obj[key] = botdata[key];
         }
         return obj;
       }, {} as Record<string, any>);
-
+  
+    // Check if the challenge is in 3 phases and set leverage to 1:100
+    if (retainedData.Challenge_type === "3-Phases") {
+      retainedData.Leverage = "1:100";
+    }
+  
     // Update the job data with only retained fields
-    //await botInfo.update(retainedData);
-    //console.log("Updated job data",botInfo.data);
-
+    // await botInfo.update(retainedData);
+    // console.log("Updated job data", botInfo.data);
+  
     console.log("Retained data in job:", retainedData);
     return retainedData;
   }
+  
   private phaseSwitchCount: number = 0; // Tracks how many times a phase switch occurs
   private runBotCount: number = 0; // Tracks how many times a bot is run
 
