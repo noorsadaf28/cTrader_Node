@@ -908,7 +908,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       const startingDailyEquity = await this.getDailyEquity(botInfo.data.traderLogin);
       console.debug("Starting daily equity fetched:", startingDailyEquity);
       botInfo.data.starting_daily_equity=startingDailyEquity;
-        botInfo.data.currentEquity=currentEquity;
+      botInfo.data.currentEquity=currentEquity;
       const initial_balance = parseInt(botInfo.data.Initial_balance);
       const maxTotalCurrency = parseInt(botInfo.data.max_total_currency);
       const profitCurrency = parseInt(botInfo.data.profitCurrency);
