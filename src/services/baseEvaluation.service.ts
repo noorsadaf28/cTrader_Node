@@ -63,7 +63,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       // Establish a secure connection to the server
       const client = new net.Socket();
       this.client = tls.connect({
-        host: "uat-demo.p.ctrader.com",
+        host: "demo-managerapi.p.ctrader.com",
         port: 5011,
         rejectUnauthorized: false,
       });
@@ -304,10 +304,10 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
       const ProtoMessage = this.root2.lookupType("ProtoMessage");
 
       const authPayload = ManagerAuthReq.create({
-        plantId: "propsandbox",
+        plantId: "noctorial",
         environmentName: "demo",
-        login: 30017,
-        passwordHash: "68bf947cb75f1d31eea2e83afd062a06"
+        login: 30008,
+        passwordHash: "f3200c68f557769c65d961e728b4e4a4"
 
       });
       const payloadBuffer = ManagerAuthReq.encode(authPayload).finish();
