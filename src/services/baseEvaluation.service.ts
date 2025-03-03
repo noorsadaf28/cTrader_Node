@@ -52,50 +52,68 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
     await this.initializeConnection();
   }
 
-  private async initializeConnection() {
+  private async initializeConnection(retryCount = 0) {
     try {
-      // Load Protobuf definitions
+      console.log(`🔄 Attempting to establish connection (Retry: ${retryCount})`);
+      
       this.root = await protobuf.load('protobufs/CSMessages_External.proto');
       this.root2 = await protobuf.load('protobufs/CommonMessages_External.proto');
-      const proxyHost = process.env.host;
-      const proxyPort = parseInt(process.env.port);
-
-      // Establish a secure connection to the server
-      const client = new net.Socket();
+  
       this.client = tls.connect({
         host: "demo-managerapi.p.ctrader.com",
         port: 5011,
         rejectUnauthorized: false,
       });
-      // Enable keep-alive to prevent idle timeout
+  
       this.client.on('connect', () => {
-        console.log('SSL connection established');
-        //this.createHeartbeatMessage()
-        this.authManager()
-        this.sendHeartbeat()
-        //this.subscribeToSpotQuotes()
+        console.log('✅ SSL connection established');
+        this.authManager();
+        this.sendHeartbeat();
       });
+  
       this.client.setKeepAlive(true, 10000);
+  
       this.client.on('data', (data: Buffer) => {
         this.handleEventData(data, this.botInfo);
       });
+  
       this.client.on('end', () => {
-        console.log('Connection ended by server');
-        //this.reconnect();
+        console.log('❌ Connection ended by server. Reconnecting...');
+        this.reconnect();
       });
-
-      // Listen for 'close' event, which happens when the connection fully closes
+  
       this.client.on('close', (hadError) => {
-        console.log(`Connection closed${hadError ? ' due to an error' : ''}`);
-        console.log('Socket destroyed:', this.client.destroyed); // Will be true after the socket is fully closed
+        console.log(`⚠️ Connection closed${hadError ? ' due to an error' : ''}. Reconnecting...`);
+        this.reconnect();
       });
+  
       this.client.on('error', (err) => {
-        console.error('Connection error:', err.message);
+        console.error('🚨 Connection error:', err.message);
+        if (retryCount < 5) {
+          setTimeout(() => this.initializeConnection(retryCount + 1), 5000);
+        } else {
+          console.error('❌ Maximum retry attempts reached. Manual intervention needed.');
+        }
       });
+  
     } catch (error) {
       console.error('Error initializing connection:', error);
+      if (retryCount < 5) {
+        console.log(`🔁 Retrying connection in 5 seconds... (${retryCount + 1}/5)`);
+        setTimeout(() => this.initializeConnection(retryCount + 1), 5000);
+      } else {
+        console.error('❌ Maximum retry attempts reached. Manual intervention needed.');
+      }
     }
   }
+  
+  // Reconnection function
+  private reconnect() {
+    console.log('🔄 Attempting to reconnect in 5 seconds...');
+    setTimeout(() => this.initializeConnection(), 5000);
+  }
+  
+
   async subscribeToSpotQuotes(botInfo: Job) {
     try {
       if (!this.root) throw new Error('Protobuf root not loaded');
@@ -284,7 +302,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
           if (symbolName && botInfo.data.symbolsSubscribed.includes(symbolName)) {
             await this.checkRules(botInfo, protoJson.symbolId, protoJson); // Pass tick data
           } else {
-            console.warn("❌ Symbol not subscribed for this bot.");
+            console.warn("❌ Symbol not subscribed for this bot.",symbolName,botInfo.data.symbolsSubscribed,botInfo.data.traderLogin);
           }
         }
       } catch (error) {
