@@ -92,7 +92,7 @@ export abstract class BaseEvaluationService implements IEvaluationInterface, OnM
         if (retryCount < 5) {
           setTimeout(() => this.initializeConnection(retryCount + 1), 5000);
         } else {
-          console.error('❌ Maximum retry attempts reached. Manual intervention needed.');
+          console.error('❌ Maximum retry attempts reached. Manual intervention now needed.');
         }
       });
   
